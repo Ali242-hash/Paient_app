@@ -2,6 +2,9 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Image, FlatList, Pressable, TextInput } from 'react-native';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 
 export default function App() {
 
@@ -9,21 +12,61 @@ export default function App() {
   const [loggedIn, setloggedIn] = useState(false);
   const [listofAppointment, setlisofAppointment] = useState([]);
   const [refresh, setRefresh] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+
+ 
+
+
+  useEffect(()=>{
+
+    async function Loadinofr() {
+      const Savetoken = await AsyncStorage.getItem('token')
+      if(Savetoken){
+
+        setToken(Savetoken)
+        setloggedIn(true)
+        Bookappointment()
+      }
+    }
+    Loadinofr()
+  },[])
+
+  async function loginServer() {
+  try {
+    const res = await axios.post("http://192.168.0.242:3000/auth/login", {
+      loginUsername: 'admin',
+      loginPassword:'1234'
+    
+    });
+
+
+
+    await AsyncStorage.setItem('token', res.data.token);
+    setToken(res.data.token);
+    setloggedIn(true);
+    Bookappointment();
+  } catch (error) {
+    console.error(error); 
+    alert("Login failed");
+  }
+}
+
+
 
   async function Load() {
-    await axios("http://192.168.0.242:3000/doctorprofiles").then((result) => {
-      setlistofDoctors(result.data);
-    });
+    const result = await axios.get("http://192.168.0.242:3000/doctorprofiles");
+    setlistofDoctors(result.data);
   }
 
   async function Bookappointment() {
-    await axios("http://192.168.0.242:3000/appointments").then((result) => {
-      const kirekhar = result.data.map(item => ({
-        ...item,
-        number: item.number == undefined ? 1 : item.number
-      }));
-      setlisofAppointment(kirekhar);
-    });
+    const result = await axios.get("http://192.168.0.242:3000/appointments");
+    const kirekhar = result.data.map(item => ({
+      ...item,
+      number: item.number === undefined ? 1 : item.number
+    }));
+    setlisofAppointment(kirekhar);
   }
 
   function Login() {
@@ -35,7 +78,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (listofDoctors.length == 0) {
+    if (listofDoctors.length === 0) {
       Load();
     }
   }, [listofDoctors]);
@@ -56,11 +99,24 @@ export default function App() {
     }
   }
 
-  function Booking(appointment) {
+  async function Booking(appointment, doctor) {
     if (!appointment.név || appointment.név.trim() === "") {
       alert("Please enter your name before booking.");
-    } else {
-      alert("Your appointment Booked");
+      return;
+    }
+
+    try {
+      await axios.post("http://192.168.0.242:3000/appointments", {
+        date: new Date(),
+        doctorId: doctor.userId, 
+        patientname: appointment.név
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert("Your appointment is booked!");
+    } catch (error) {
+      alert("Failed to book appointment");
     }
   }
 
@@ -68,9 +124,19 @@ export default function App() {
     <View style={styles.container}>
       <Text style={styles.heading}>List of Doctors</Text>
 
-      <Pressable  onPress={Login}>
-        <Text style={{textAlign:'center'}}>{loggedIn ? "Kijelentkezés" : "Bejelentkezés"}</Text>
+      <Pressable onPress={Login}>
+        <Text style={{ textAlign: 'center' }}>{loggedIn ? "Kijelentkezés" : "Bejelentkezés"}</Text>
       </Pressable>
+
+      {!loggedIn && (
+        <View>
+          <TextInput placeholder="Username" onChangeText={setUsername} value={username} />
+          <TextInput placeholder="Password" secureTextEntry onChangeText={setPassword} value={password} />
+          <Pressable onPress={loginServer}>
+            <Text>Login</Text>
+          </Pressable>
+        </View>
+      )}
 
       <FlatList
         data={listofDoctors}
@@ -82,7 +148,6 @@ export default function App() {
           return (
             <View style={styles.inline}>
 
-             
               <View style={styles.leftSide}>
                 <Image
                   style={styles.image}
@@ -96,19 +161,24 @@ export default function App() {
                 </View>
               </View>
 
-           
               {loggedIn && appointment && (
                 <View style={styles.rightSide}>
                   <TextInput
                     style={styles.nev}
                     placeholder='Please enter your name'
                     onChangeText={(text) => {
-                      appointment.név = text;
-                      setRefresh(!refresh);
+                      const updatedappointment = [...listofAppointment]
+                      updatedappointment[index]={
+                        ...updatedappointment[index],
+                        név:text
+                      }
+                      setlisofAppointment(updatedappointment)
+                      
                     }}
+                    value={appointment.név || ""}
                   />
 
-                  <Pressable style={styles.button} onPress={() => Booking(appointment)}>
+                  <Pressable style={styles.button} onPress={() => Booking(appointment, item)}>
                     <Text>Booking Appointment</Text>
                   </Pressable>
 
