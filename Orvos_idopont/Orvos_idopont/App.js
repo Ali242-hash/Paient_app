@@ -27,9 +27,9 @@ export default function App() {
   }
 
   function Login() {
-    const newStatus = !loggedIn;
-    setloggedIn(newStatus);
-    if (newStatus) {
+    const nameset = !loggedIn;
+    setloggedIn(nameset);
+    if (nameset) {
       Bookappointment();
     }
   }
@@ -82,7 +82,7 @@ export default function App() {
           return (
             <View style={styles.inline}>
 
-              {/* Doctor info on the left */}
+             
               <View style={styles.leftSide}>
                 <Image
                   style={styles.image}
@@ -96,7 +96,7 @@ export default function App() {
                 </View>
               </View>
 
-              {/* Booking controls on the right */}
+           
               {loggedIn && appointment && (
                 <View style={styles.rightSide}>
                   <TextInput
