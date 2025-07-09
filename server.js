@@ -1,4 +1,3 @@
-
 const express = require('express')
 const server = express()
 const { dbHandler, User, Appointment, DoctorProfile,Shift,Timeslot,Specialization,Treatment } = require('./dbHandler')
@@ -38,18 +37,21 @@ server.get('/admin', async (req, res) => {
 
 server.post('/user', async (req, res) => {
   const { NewFullName, NewEmail, NewUsername, NewPassword } = req.body
+
   const OneUser = await User.findOne({ where: { username: NewUsername } })
   if (OneUser) {
     return res.status(409).json({ message: 'This user has already registered' }).end()
   }
+
   await User.create({
-    Fullname:NewFullName,
+    fullname: NewFullName, 
     email: NewEmail,
     username: NewUsername,
     password: NewPassword,
     role: 'patient',
     active: true
   })
+
   res.json({ message: 'Registered Successfully' }).end()
 })
 
