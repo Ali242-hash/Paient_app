@@ -1,16 +1,8 @@
 const express = require('express')
 const server = express()
-const { dbHandler, User, Appointment, DoctorProfile,Shift,Timeslot,Specialization,Treatment } = require('./dbHandler')
-User.sync({ alter: true });
-DoctorProfile.sync({ alter: true });
-Shift.sync({ alter: true });
-Timeslot.sync({ alter: true });
-Appointment.sync({ alter: true });
-Specialization.sync({ alter: true });
-Treatment.sync({ alter: true });
-
+const { dbHandler, User, Appointment, DoctorProfile, Shift, Timeslot, Specialization, Treatment } = require('./dbHandler')
 const JWT = require('jsonwebtoken')
-const cors = require('cors')
+const cors = require('cors');
 require('dotenv').config()
 
 const PORT = process.env.PORT || 3000
@@ -20,6 +12,14 @@ const expiresIn = process.env.EXPIRESIN || '3h'
 server.use(express.json())
 server.use(cors())
 
+User.sync({ alter: true });
+DoctorProfile.sync({ alter: true });
+Shift.sync({ alter: true });
+Timeslot.sync({ alter: true });
+Appointment.sync({ alter: true });
+Specialization.sync({ alter: true });
+Treatment.sync({ alter: true });
+
 ;(async () => {
   await dbHandler.sync({ alter: true })
 })()
@@ -28,7 +28,61 @@ server.get('/users', async (req, res) => {
   res.status(200).json(await User.findAll()).end()
 })
 
+server.post('/shifts', async (req, res) => {
+  const { doctorId, dátum, típus } = req.body;
 
+  if (!doctorId || !dátum || !típus) {
+    return res.status(400).json({ message: 'Information is incomplete' }).end();
+  }
+
+  try {
+    const existingShift = await Shift.findOne({
+      where: { doctorId, dátum, típus }
+    });
+
+    if (existingShift) {
+      return res.status(409).json({ message: 'Shift already exists' }).end();
+    }
+
+    const newShift = await Shift.create({ doctorId, dátum, típus });
+
+    const start = new Date(`${dátum}T09:00:00`);
+    const end = new Date(`${dátum}T17:00:00`);
+    const slots = [];
+
+    while (start < end) {
+      slots.push({
+        doctorId,
+        dátum,
+        típus,
+        from: new Date(start),
+        to: new Date(start.getTime() + 15 * 60000)
+      });
+      start.setMinutes(start.getMinutes() + 15);
+    }
+
+    res.status(201).json({ message: 'shitfs created', newShift, slots }).end()
+  } catch (error) {
+    res.status(500).json({ message: 'Shift not created', error }).end()
+  }
+});
+
+server.get('/appointments/free/:doctorId', async (req, res) => {
+  const { doctorId } = req.params;
+
+  try {
+    const allslots = await Timeslot.findAll({ where: { doctorId } })
+    const booked = await Appointment.findAll({ where: { doctorId } })
+
+    const bookedslotId = booked.map(app => app.timeslotId);
+    const freeslotId = allslots.filter(slot => !bookedslotId.includes(slot.id));
+
+    return res.status(200).json(freeslotId).end()
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Internal error' }).end();
+  }
+})
 
 server.get('/admin', async (req, res) => {
   const admins = await User.findAll({ where: { role: 'admin' } })
@@ -73,7 +127,6 @@ server.get('/Doctorprofiles', async (req, res) => {
 server.post('/Doctorprofiles', async (req, res) => {
   const {NewdocId,NewdocName,NewdocDescription,NewDocprofilekep,NewdocSpeciality,NewdocTreatment,Newdocprofikesz} = req.body;
 
-  
   const oneDoctor = await DoctorProfile.findOne({
     where: { NewdocId }
   });
@@ -82,7 +135,6 @@ server.post('/Doctorprofiles', async (req, res) => {
     return res.status(409).json({ "message": "This doctor is already in the system" }).end();
   }
 
-  
   await DoctorProfile.create({
     NewdocId,
     NewdocName,
@@ -95,8 +147,6 @@ server.post('/Doctorprofiles', async (req, res) => {
 
   res.status(201).json({ "message": "Doctor profile has been created" }).end();
 })
-
-
 
 server.post('/admin', async (req, res) => {
   const { NewAdminName, NewAdminEmail, NewAdminUsername, NewAdminPass } = req.body
@@ -141,8 +191,7 @@ server.post('/auth/register', async (req, res) => {
   res.status(201).json({ message: 'Registration successful' }).end()
 })
 
-server.get('/appointments',async(req,res)=>{
-
+server.get('/appointments', async (req, res) => {
   res.status(200).json(await Appointment.findAll()).end()
 })
 
