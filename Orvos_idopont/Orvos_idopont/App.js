@@ -26,22 +26,53 @@ export default function App() {
     Loadinofr();
   }, []);
 
-  async function loginServer() {
-    try {
-      const res = await axios.post("http://192.168.0.242:3000/auth/login", {
-        loginUsername: 'admin',
-        loginPassword: '1234'
-      });
+async function loginServer() {
+  console.log("loginServer() called");
 
+  try {
+    const res = await axios.post("http://192.168.0.242:3000/auth/login", {
+      loginUsername: username,
+      loginPassword: password
+    });
+
+    console.log("Response from server:", res.data);
+
+    if (res.data.token) {
       await AsyncStorage.setItem('token', res.data.token);
       setToken(res.data.token);
       setloggedIn(true);
       Bookappointment();
-    } catch (error) {
-      console.error(error);
-      alert("Login failed");
+      alert("Login was successful")
+    } else {
+      alert("Login failed: No token received")
     }
+
+  } catch (error) {
+    console.error("Login error:", error.response?.data || error.message);
+    alert("Login failed")
   }
+}
+
+async function Create_Admin() {
+  try {
+    const response = await axios.post("http://192.168.0.242:3000/admin", {
+      NewAdminName: "Admin",
+      NewAdminEmail: "admin@admin.com",
+      NewAdminUsername: "admin",
+      NewAdminPass: "1234"
+    });
+
+    console.log("Admin Created");
+  } catch (error) {
+    console.log("admin failed", error.response?.data || error.message);
+  }
+}
+
+useEffect(() => {
+  Create_Admin(); 
+}, []);
+
+
 
   async function Load() {
     const result = await axios.get("http://192.168.0.242:3000/doctorprofiles");
