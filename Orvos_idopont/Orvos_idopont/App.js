@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
-
 export default function App() {
 
   const [listofDoctors, setlistofDoctors] = useState([]);
@@ -16,44 +14,34 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
 
- 
-
-
-  useEffect(()=>{
-
+  useEffect(() => {
     async function Loadinofr() {
-      const Savetoken = await AsyncStorage.getItem('token')
-      if(Savetoken){
-
-        setToken(Savetoken)
-        setloggedIn(true)
-        Bookappointment()
+      const Savetoken = await AsyncStorage.getItem('token');
+      if (Savetoken) {
+        setToken(Savetoken);
+        setloggedIn(true);
+        Bookappointment();
       }
     }
-    Loadinofr()
-  },[])
+    Loadinofr();
+  }, []);
 
   async function loginServer() {
-  try {
-    const res = await axios.post("http://192.168.0.242:3000/auth/login", {
-      loginUsername: 'admin',
-      loginPassword:'1234'
-    
-    });
+    try {
+      const res = await axios.post("http://192.168.0.242:3000/auth/login", {
+        loginUsername: 'admin',
+        loginPassword: '1234'
+      });
 
-
-
-    await AsyncStorage.setItem('token', res.data.token);
-    setToken(res.data.token);
-    setloggedIn(true);
-    Bookappointment();
-  } catch (error) {
-    console.error(error); 
-    alert("Login failed");
+      await AsyncStorage.setItem('token', res.data.token);
+      setToken(res.data.token);
+      setloggedIn(true);
+      Bookappointment();
+    } catch (error) {
+      console.error(error);
+      alert("Login failed");
+    }
   }
-}
-
-
 
   async function Load() {
     const result = await axios.get("http://192.168.0.242:3000/doctorprofiles");
@@ -106,9 +94,9 @@ export default function App() {
     }
 
     try {
-      await axios.post("http://192.168.0.242:3000/appointments", {
+      await axios.post("http://192.168.0.242:3000/appointments", { 
         date: new Date(),
-        doctorId: doctor.userId, 
+        doctorId: doctor.userId,
         patientname: appointment.név
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -129,13 +117,45 @@ export default function App() {
       </Pressable>
 
       {!loggedIn && (
-        <View>
-          <TextInput placeholder="Username" onChangeText={setUsername} value={username} />
-          <TextInput placeholder="Password" secureTextEntry onChangeText={setPassword} value={password} />
-          <Pressable onPress={loginServer}>
-            <Text>Login</Text>
-          </Pressable>
-        </View>
+       <View style={{ alignItems: "center", justifyContent: "center", marginTop: 50 }}>
+  <TextInput
+    style={{
+      textAlign: "center",
+      marginTop: 20,
+      width: 200,
+      height: 40,
+      borderWidth: 1,
+      borderColor: "#ccc",
+      borderRadius: 5,
+      paddingHorizontal: 10,
+    }}
+    placeholder="Username"
+    onChangeText={setUsername}
+    value={username}
+  />
+
+  <TextInput
+    style={{
+      textAlign: "center",
+      marginTop: 20,
+      width: 200,
+      height: 40,
+      borderWidth: 1,
+      borderColor: "#ccc",
+      borderRadius: 5,
+      paddingHorizontal: 10,
+    }}
+    placeholder="Password"
+    secureTextEntry
+    onChangeText={setPassword}
+    value={password}
+  />
+
+  <Pressable onPress={loginServer} style={{ marginTop: 20 }}>
+    <Text style={{ textAlign: "center", color: "blue" }}>Login</Text>
+  </Pressable>
+</View>
+
       )}
 
       <FlatList
@@ -147,7 +167,6 @@ export default function App() {
 
           return (
             <View style={styles.inline}>
-
               <View style={styles.leftSide}>
                 <Image
                   style={styles.image}
@@ -167,13 +186,12 @@ export default function App() {
                     style={styles.nev}
                     placeholder='Please enter your name'
                     onChangeText={(text) => {
-                      const updatedappointment = [...listofAppointment]
-                      updatedappointment[index]={
+                      const updatedappointment = [...listofAppointment];
+                      updatedappointment[index] = {
                         ...updatedappointment[index],
-                        név:text
-                      }
-                      setlisofAppointment(updatedappointment)
-                      
+                        név: text
+                      };
+                      setlisofAppointment(updatedappointment);
                     }}
                     value={appointment.név || ""}
                   />
@@ -196,7 +214,6 @@ export default function App() {
                   </View>
                 </View>
               )}
-
             </View>
           );
         }}
