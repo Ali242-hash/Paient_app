@@ -1,226 +1,248 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image, FlatList, Pressable, TextInput } from 'react-native';
+import { StyleSheet, Text, View, Image, FlatList, Pressable, TextInput, ImageBackground } from 'react-native'
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import DatePicker from 'react-native-date-picker'; //not supporting Datepicker
+import { Picker } from '@react-native-picker/picker';
 
-export default function App() {
+const Stack = createNativeStackNavigator()
 
-  const [listofDoctors, setlistofDoctors] = useState([]);
-  const [loggedIn, setloggedIn] = useState(false);
-  const [listofAppointment, setlisofAppointment] = useState([]);
-  const [refresh, setRefresh] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [token, setToken] = useState('');
 
-  useEffect(() => {
-    async function Loadinofr() {
-      const Savetoken = await AsyncStorage.getItem('token');
-      if (Savetoken) {
-        setToken(Savetoken);
-        setloggedIn(true);
-        Bookappointment();
-      }
-    }
-    Loadinofr();
-  }, []);
-
-  async function loginServer() {
-    try {
-      const res = await axios.post("http://192.168.0.242:3000/auth/login", {
-        loginUsername: 'admin',
-        loginPassword: '1234'
-      });
-
-      await AsyncStorage.setItem('token', res.data.token);
-      setToken(res.data.token);
-      setloggedIn(true);
-      Bookappointment();
-    } catch (error) {
-      console.error(error);
-      alert("Login failed");
+function generateTimeSlots() {
+  const slots = [];
+  for (let hour = 9; hour < 17; hour++) {
+    for (let min = 0; min < 60; min += 15) {
+      const h = hour.toString().padStart(2, '0')
+      const m = min.toString().padStart(2, '0')
+      slots.push(`${h}:${m}`)
     }
   }
+  return slots;
+}
+
+function DoctorScreen({ navigation }) {
+  const [listOfDoctors, setlistOfDoctors] = useState([])
+  const [refresh, setRefresh] = useState(false);
+  const [appointments, setAppointments] = useState([])
 
   async function Load() {
-    const result = await axios.get("http://192.168.0.242:3000/doctorprofiles");
-    setlistofDoctors(result.data);
+    const result = await axios.get("http://192.168.0.242:3000/doctorprofiles")
+    const initializedDoctors = result.data.map(doc => ({ ...doc, number: 1 }))
+    setlistOfDoctors(initializedDoctors);
+    setAppointments(initializedDoctors.map(() => ({
+      name: '',
+      username: '',
+      email: '',
+      date: new Date(),
+      timeslot: '09:00'
+    })))
   }
 
-  async function Bookappointment() {
-    const result = await axios.get("http://192.168.0.242:3000/appointments");
-    const kirekhar = result.data.map(item => ({
-      ...item,
-      number: item.number === undefined ? 1 : item.number
-    }));
-    setlisofAppointment(kirekhar);
-  }
-
-  function Login() {
-    const nameset = !loggedIn;
-    setloggedIn(nameset);
-    if (nameset) {
-      Bookappointment();
+  async function ConfirmRegistration(index, doctor) {
+    const appointment = appointments[index];
+    const payload = {
+      név: appointment.name,
+      megjegyzés: `${appointment.username} | ${appointment.email}`,
+      timeslotId: doctor.id,
+    };
+    try {
+      let all = await AsyncStorage.getItem("appointments")
+      let current = all ? JSON.parse(all) : []
+      current.push({ doctor: doctor.Docname, ...appointment })
+      await AsyncStorage.setItem("appointments", JSON.stringify(current))
+      alert("Registration saved successfully.");
+    } catch (err) {
+      console.log("AsyncStorage error:", err)
     }
   }
 
   useEffect(() => {
-    if (listofDoctors.length === 0) {
-      Load();
-    }
-  }, [listofDoctors]);
-
-  function Appdecrease(item) {
-    const index = listofAppointment.indexOf(item);
-    if (listofAppointment[index].number - 1 > 0) {
-      listofAppointment[index].number--;
-      setRefresh(!refresh);
-    }
-  }
+    if (listOfDoctors.length === 0) Load();
+  }, [listOfDoctors]);
 
   function AppIncrease(item) {
-    const index = listofAppointment.indexOf(item);
-    if (listofAppointment[index].number < 10) {
-      listofAppointment[index].number++;
+    const index = listOfDoctors.indexOf(item);
+    if (listOfDoctors[index].number < 10) {
+      listOfDoctors[index].number++;
       setRefresh(!refresh);
     }
   }
 
-  async function Booking(appointment, doctor) {
-    if (!appointment.név || appointment.név.trim() === "") {
-      alert("Please enter your name before booking.");
-      return;
-    }
-
-    try {
-      await axios.post("http://192.168.0.242:3000/appointments", { 
-        date: new Date(),
-        doctorId: doctor.userId,
-        patientname: appointment.név
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      alert("Your appointment is booked!");
-    } catch (error) {
-      alert("Failed to book appointment");
+  function AppDecrease(item) {
+    const index = listOfDoctors.indexOf(item);
+    if (listOfDoctors[index].number - 1 > 0) {
+      listOfDoctors[index].number--;
+      setRefresh(!refresh);
     }
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>List of Doctors</Text>
-
-      <Pressable onPress={Login}>
-        <Text style={{ textAlign: 'center' }}>{loggedIn ? "Kijelentkezés" : "Bejelentkezés"}</Text>
+      <Text style={styles.heading}>Doctor Appointment</Text>
+      <Pressable onPress={() => navigation.navigate("Admin")}>
+        <Text style={{ color: 'blue', marginBottom: 20 }}>Go to Admin Page</Text>
       </Pressable>
 
-      {!loggedIn && (
-       <View style={{ alignItems: "center", justifyContent: "center", marginTop: 50 }}>
-  <TextInput
-    style={{
-      textAlign: "center",
-      marginTop: 20,
-      width: 200,
-      height: 40,
-      borderWidth: 1,
-      borderColor: "#ccc",
-      borderRadius: 5,
-      paddingHorizontal: 10,
-    }}
-    placeholder="Username"
-    onChangeText={setUsername}
-    value={username}
-  />
-
-  <TextInput
-    style={{
-      textAlign: "center",
-      marginTop: 20,
-      width: 200,
-      height: 40,
-      borderWidth: 1,
-      borderColor: "#ccc",
-      borderRadius: 5,
-      paddingHorizontal: 10,
-    }}
-    placeholder="Password"
-    secureTextEntry
-    onChangeText={setPassword}
-    value={password}
-  />
-
-  <Pressable onPress={loginServer} style={{ marginTop: 20 }}>
-    <Text style={{ textAlign: "center", color: "blue" }}>Login</Text>
-  </Pressable>
-</View>
-
-      )}
-
       <FlatList
-        data={listofDoctors}
-        keyExtractor={(item, index) => item.Docname ? item.Docname.toString() : index.toString()}
-        extraData={refresh}
+        data={listOfDoctors}
+        keyExtractor={(item, index) => item.Docname?.toString() || index.toString()}
         renderItem={({ item, index }) => {
-          const appointment = listofAppointment[index];
-
+          const appointment = appointments[index];
           return (
-            <View style={styles.inline}>
-              <View style={styles.leftSide}>
-                <Image
-                  style={styles.image}
-                  source={{ uri: item.profilKépUrl }}
-                />
+            <View style={{ padding: 10, borderBottomWidth: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Image source={{ uri: item.profilKépUrl }} style={{ width: 80, height: 130, borderRadius: 12, borderColor: "lime", borderWidth: 2 }} />
                 <View style={{ marginLeft: 10, flexShrink: 1 }}>
-                  <Text>{item.Docname}</Text>
-                  <Text style={styles.sp}>{item.specialty}</Text>
+                  <Text style={{ fontWeight: "bold" }}>{item.Docname}</Text>
+                  <Text style={{ fontWeight: "bold" }}>Description:</Text>
                   <Text>{item.description}</Text>
+                  <Text style={{ fontWeight: "bold" }}>Speciality:</Text>
+                  <Text>{item.specialty}</Text>
+                  <Text style={{ fontWeight: "bold" }}>Treatment:</Text>
                   <Text>{item.treatments}</Text>
                 </View>
               </View>
 
-              {loggedIn && appointment && (
-                <View style={styles.rightSide}>
-                  <TextInput
-                    style={styles.nev}
-                    placeholder='Please enter your name'
-                    onChangeText={(text) => {
-                      const updatedappointment = [...listofAppointment];
-                      updatedappointment[index] = {
-                        ...updatedappointment[index],
-                        név: text
-                      };
-                      setlisofAppointment(updatedappointment);
-                    }}
-                    value={appointment.név || ""}
-                  />
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{fontSize:15, marginTop:40,fontWeight:"bold",paddingVertical:10}}>Patient Registration</Text>
+                  <TextInput placeholder="Name" value={appointment.name} style={styles.input} onChangeText={(text) => {
+                    const updated = [...appointments];
+                    updated[index].name = text;
+                    setAppointments(updated);
+                  }} />
 
-                  <Pressable style={styles.button} onPress={() => Booking(appointment, item)}>
-                    <Text>Booking Appointment</Text>
+                  <TextInput placeholder="Username" value={appointment.username} style={styles.input} onChangeText={(text) => {
+                    const updated = [...appointments];
+                    updated[index].username = text;
+                    setAppointments(updated);
+                  }} />
+
+                  <TextInput placeholder="Email" value={appointment.email} style={styles.input} onChangeText={(text) => {
+                    const updated = [...appointments];
+                    updated[index].email = text;
+                    setAppointments(updated);
+                  }} />
+
+                  <DatePicker
+                    date={appointment.date}
+                    onDateChange={(date) => {
+                      const updated = [...appointments];
+                      updated[index].date = date;
+                      setAppointments(updated);
+                    }}
+                    mode="date"
+                  />
+                </View>
+
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={{textAlign:"center",fontWeight:"bold",marginTop:15,paddingVertical:10}}>Consultation Time</Text>
+                  <Picker
+                    selectedValue={appointment.timeslot}
+                    style={{ height: 50, width: 140, borderRadius:10 }}
+                    onValueChange={(value) => {
+                      const updated = [...appointments];
+                      updated[index].timeslot = value;
+                      setAppointments(updated);
+                    }}
+                  >
+                    {generateTimeSlots().map((slot, idx) => (
+                      <Picker.Item key={idx} label={slot} value={slot} />
+                    ))}
+                  </Picker>
+
+                  <Pressable onPress={() => ConfirmRegistration(index, item)}>
+                    <Text style={styles.button}>Confirm Registration</Text>
                   </Pressable>
 
-                  <View style={styles.counterContainer}>
-                    <Text>Number of Patient</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Pressable onPress={() => AppIncrease(appointment)} style={styles.counterButton}>
-                        <Text style={styles.counterText}>+</Text>
-                      </Pressable>
-                      <Text style={styles.number}>{appointment.number}</Text>
-                      <Pressable onPress={() => Appdecrease(appointment)} style={styles.counterButton}>
-                        <Text style={styles.counterText}>-</Text>
-                      </Pressable>
-                    </View>
+                  <Text style={{ marginTop: 5,textAlign:"center" }}>Number of Patient</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Pressable onPress={() => AppIncrease(item)}><Text style={{ fontSize: 25,borderColor:"gray",borderWidth:4,borderRadius:15,padding:10,marginTop:12 }}>+</Text></Pressable>
+                    <Text style={{ marginHorizontal: 10 }}>{item.number}</Text>
+                    <Pressable onPress={() => AppDecrease(item)}><Text style={{ fontSize: 25,borderColor:"gray",borderWidth:4,borderRadius:15,padding:10,marginTop:12}}>-</Text></Pressable>
                   </View>
                 </View>
-              )}
+              </View>
             </View>
-          );
+          )
         }}
       />
-
-      <StatusBar style="auto" />
     </View>
+  );
+}
+
+
+function AdminScreen() {
+  const [appointments, setAppointments] = useState([])
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  async function loadAppointments() {
+    const raw = await AsyncStorage.getItem("appointments")
+    if (raw) {
+      setAppointments(JSON.parse(raw))
+    }
+  }
+
+  async function deleteAppointment(index) {
+    const copy = [...appointments]
+    copy.splice(index, 1)
+    await AsyncStorage.setItem("appointments", JSON.stringify(copy));
+    setAppointments(copy);
+  }
+
+  function handleLogin() {
+    if (email === 'admin@admin.com' && password === 'admin123qwe') {
+      setLoggedIn(true)
+      loadAppointments()
+    } else {
+      alert("Wrong credentials")
+    }
+  }
+
+  if (!loggedIn) {
+    return (
+      <View style={styles.container}>
+        <TextInput placeholder="Admin Email" value={email} onChangeText={setEmail} style={styles.input} />
+        <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
+        <Pressable onPress={handleLogin}><Text style={styles.button}>Login</Text></Pressable>
+        <Text style={{textAlign:"center", borderWidth:4,borderColor:'blue', marginTop:25,padding:10, alignItems:'center',justifyContent:'flex-end'}}>FYI Admin email is admin@admin.com & Password admin123qwe</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.heading}>Appointments</Text>
+      {appointments.map((app, index) => (
+        <View key={index} style={{ marginBottom: 10 }}>
+          <Text>Doctor: {app.doctor}</Text>
+          <Text>Patient: {app.name}</Text>
+          <Text>Username: {app.username}</Text>
+          <Text>Email: {app.email}</Text>
+          <Text>Date: {new Date(app.date).toLocaleDateString()}</Text>
+          <Text>Time: {app.timeslot}</Text>
+          <Pressable onPress={() => deleteAppointment(index)}>
+            <Text style={{ color: 'red' }}>Delete</Text>
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Doctor">
+        <Stack.Screen name="Doctor" component={DoctorScreen} />
+        <Stack.Screen name="Admin" component={AdminScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -229,80 +251,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     paddingTop: 40,
-    paddingHorizontal: 10,
+    paddingHorizontal: 10
   },
   heading: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: "brown",
-    textShadowColor: 'blue',
-    textShadowRadius: 1,
-    textShadowOffset: { width: 1, height: 1 },
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  inline: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomColor: '#ddd',
-    borderBottomWidth: 1,
-    alignItems: 'flex-start',
-  },
-  leftSide: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  rightSide: {
-    width: 180,
-    justifyContent: 'flex-start',
-  },
-  image: {
-    width: 120,
-    height: 160,
-    borderRadius: 15,
-    borderColor: 'black',
-    borderWidth: 2,
-  },
-  sp: {
     fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center"
   },
-  nev: {
+  input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 5,
-    borderRadius: 5,
-    marginBottom: 10,
+    borderColor: 'gray',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    width: '90%',
+    backgroundColor: '#f4f4f4',
+    textAlign: 'center',
+    alignItems:"center",
+    justifyContent:"center",
+    width:160,
+   paddingHorizontal:20
   },
   button: {
-    backgroundColor: 'lime',
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "blue",
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  counterContainer: {
-    alignItems: 'center',
-  },
-  counterButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#ddd',
-    marginHorizontal: 5,
-    borderRadius: 5,
-  },
-  counterText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  number: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    minWidth: 30,
+    color: 'blue',
+    borderColor: 'blue',
+    borderWidth: 1,
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 10,
     textAlign: 'center',
+      alignItems:"center",
+    justifyContent:"center",
+    width:160
   }
-});
+})
