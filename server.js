@@ -61,7 +61,7 @@ server.post('/shifts', async (req, res) => {
       start.setMinutes(start.getMinutes() + 15);
     }
 
-    res.status(201).json({ message: 'shitfs created', newShift, slots }).end()
+    res.status(201).json({ message: 'shifts created', newShift, slots }).end()
   } catch (error) {
     res.status(500).json({ message: 'Shift not created', error }).end()
   }
@@ -88,6 +88,25 @@ server.get('/admin', async (req, res) => {
   const admins = await User.findAll({ where: { role: 'admin' } })
   res.status(200).json(admins).end()
 })
+
+
+server.post('/admin', async (req, res) => {
+  const { NewAdminName, NewAdminEmail, NewAdminUsername, NewAdminPass } = req.body;
+  const oneAdmin = await User.findOne({ where: { username: NewAdminUsername } });
+  if (oneAdmin) {
+    return res.status(409).json({ message: 'This Admin has already registered' }).end();
+  }
+  await User.create({
+    fullname: NewAdminName,   
+    email: NewAdminEmail,
+    username: NewAdminUsername,
+    password: NewAdminPass,
+    role: 'admin',
+    active: true
+  });
+  res.json({ message: 'Registered Successfully' }).end();
+});
+
 
 server.post('/user', async (req, res) => {
   const { NewFullName, NewEmail, NewUsername, NewPassword } = req.body
@@ -148,31 +167,33 @@ server.post('/Doctorprofiles', async (req, res) => {
   res.status(201).json({ "message": "Doctor profile has been created" }).end();
 })
 
-server.post('/admin', async (req, res) => {
-  const { NewAdminName, NewAdminEmail, NewAdminUsername, NewAdminPass } = req.body
-  const oneAdmin = await User.findOne({ where: { username: NewAdminUsername } })
-  if (oneAdmin) {
-    return res.status(409).json({ message: 'This Admin has already registered' }).end()
-  }
-  await User.create({
-    email: NewAdminEmail,
-    username: NewAdminUsername,
-    password: NewAdminPass,
-    role: 'admin',
-    active: true
-  })
-  res.json({ message: 'Registered Successfully' }).end()
-})
-
 server.post('/auth/login', async (req, res) => {
-  const { loginUsername, loginPassword } = req.body
-  const OneUser = await User.findOne({ where: { username: loginUsername } })
+  const { loginUsername, loginPassword } = req.body;
+  console.log('Incoming login request:', loginUsername, loginPassword);
+
+  const OneUser = await User.findOne({ where: { username: loginUsername } });
+
   if (OneUser && OneUser.password === loginPassword) {
-    const token = JWT.sign({ username: OneUser.username, role: OneUser.role }, secretkey, { expiresIn })
-    return res.json({ token, role: OneUser.role, message: 'login was successful' }).end()
+    const token = JWT.sign({ username: OneUser.username, role: OneUser.role },secretkey,{ expiresIn }
+    );
+
+    return res.json({
+      id: OneUser.id,
+      fullname: OneUser.fullname,
+      email: OneUser.email,
+      username: OneUser.username,
+      password: OneUser.password,
+      role: OneUser.role,
+      active: OneUser.active,
+      létrehozásDátuma: OneUser.createdAt, 
+      token,
+      message: 'login was successful'
+    }).end();
   }
-  res.json({ message: 'There is an issue on your login please try again' }).end()
-})
+
+  res.json({ message: 'There is an issue on your login please try again' }).end();
+});
+
 
 server.post('/auth/register', async (req, res) => {
   const { RegisterUsername, RegisterPassword, role, RegisterEmail } = req.body
