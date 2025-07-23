@@ -94,5 +94,3 @@ module.exports = {
   Specialization: specialization,
   Treatment: treatment
 }
-
-

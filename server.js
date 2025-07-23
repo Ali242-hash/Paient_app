@@ -2,14 +2,16 @@ const express = require('express')
 const server = express()
 const db = require('./dbHandler')    
 
-const dbHandler = db.dbHandler
-const User = db.User
-const Appointment = db.Appointment
-const DoctorProfile = db.DoctorProfile
-const Shift = db.Shift
-const Timeslot = db.Timeslot
-const Treatment = db.Treatment
-const Specialization = db.Specialization
+const { 
+  dbHandler, 
+  User, 
+  DoctorProfile, 
+  Appointment, 
+  Shift, 
+  Timeslot, 
+  Treatment, 
+  Specialization 
+} = db;
 
 const JWT = require('jsonwebtoken')
 const cors = require('cors')
@@ -33,13 +35,24 @@ server.use('/auth', authRouter)
 server.use('/shifts', Shiftrouter)
 
 
-User.sync({ alter: true })
-DoctorProfile.sync({ alter: true })
-Shift.sync({ alter: true })
-Timeslot.sync({ alter: true })
-Appointment.sync({ alter: true })
-Specialization.sync({ alter: true })
-Treatment.sync({ alter: true })
+Promise.all([
+  User.sync({ alter: true }),
+  DoctorProfile.sync({ alter: true }),
+  Shift.sync({ alter: true }),
+  Timeslot.sync({ alter: true }),
+  Appointment.sync({ alter: true }),
+  Specialization.sync({ alter: true }),
+  Treatment.sync({ alter: true })
+])
+.then(() => {
+  console.log('All models were synchronized successfully');
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+})
+.catch(err => {
+  console.error('Model synchronization failed:', err);
+});
 
 
 ;(async () => {
