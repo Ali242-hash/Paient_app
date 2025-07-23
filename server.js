@@ -28,9 +28,9 @@ server.use(cors())
 
 server.use('/users', userRouters)
 server.use('/appointments', RouterAppointment)
-server.use('/doctorProfile', DoctorProRoute)
+server.use('/doctorProfiles', DoctorProRoute)
 server.use('/auth', authRouter)
-server.use('/shift', Shiftrouter)
+server.use('/shifts', Shiftrouter)
 
 
 User.sync({ alter: true })
@@ -54,3 +54,5 @@ Treatment.sync({ alter: true })
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
+module.exports = server 
