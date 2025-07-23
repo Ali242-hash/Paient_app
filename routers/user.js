@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { User } = require('../dbHandler')
+const { User } = require('../dbHandler');
+const { Model } = require('sequelize');
 
 router.get('/', (req, res) => {
   res.json({ message: 'User route works!' });
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
       fullname: NewAdminName,
       email: NewAdminEmail,
       username: NewAdminUsername,
-      password: NewAdminPass,  // plain text password
+      password: NewAdminPass,  
       role: 'admin',
       active: true
     });
@@ -103,4 +104,4 @@ router.delete('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router

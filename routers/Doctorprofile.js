@@ -1,35 +1,52 @@
 const express = require('express');
 const router = express.Router();
-const { DoctorProfile } = require('../dbHandler');
+const db = require('../dbHandler');
+const DoctorProfile = db.DoctorProfile;
 
 router.get('/', async (req, res) => {
   try {
-    const profiles = await DoctorProfile.findAll();
+    const profiles = await DoctorProfile.findAll({
+      include: [{ model: db.User }] 
+    });
     res.status(200).json(profiles);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch doctor profiles', error: err.message });
+    res.status(500).json({ 
+      message: 'Failed to fetch doctor profiles', 
+      error: err.message 
+    });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    id,
-    userId,
-    Docname,
-    description,
-    profilKépUrl,
-     specialty,
-     treatments,
-    profilKész = true;
+    const {
+      userId,
+      Docname,
+      description,
+      profilKépUrl,
+      specialty,
+      treatments,
+      profilKész = true
+    } = req.body;
 
-    const existingDoctor = await DoctorProfile.findOne({ where: { id } });
 
-    if (existingDoctor) {
-      return res.status(409).json({ message: 'This doctor is already in the system' });
+    const user = await db.User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    await DoctorProfile.create({
-      id,
+   
+    const existingProfile = await DoctorProfile.findOne({ 
+      where: { userId } 
+    });
+    
+    if (existingProfile) {
+      return res.status(409).json({ 
+        message: 'Doctor profile already exists for this user' 
+      });
+    }
+
+    const newProfile = await DoctorProfile.create({
       userId,
       Docname,
       description,
@@ -39,11 +56,16 @@ router.post('/', async (req, res) => {
       profilKész
     });
 
-    res.status(201).json({ message: 'Doctor profile has been created' });
+    res.status(201).json({
+      message: 'Doctor profile created successfully',
+      profile: newProfile
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Doctor profile creation failed', error: err.message });
+    res.status(500).json({ 
+      message: 'Doctor profile creation failed', 
+      error: err.message 
+    });
   }
 });
-
 
 module.exports = router;
