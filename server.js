@@ -32,7 +32,7 @@ server.use('/doctorProfile', DoctorProRoute)
 server.use('/auth', authRouter)
 server.use('/shift', Shiftrouter)
 
-// Optional: sync models individually (but not required if you sync dbHandler)
+
 User.sync({ alter: true })
 DoctorProfile.sync({ alter: true })
 Shift.sync({ alter: true })
@@ -41,7 +41,7 @@ Appointment.sync({ alter: true })
 Specialization.sync({ alter: true })
 Treatment.sync({ alter: true })
 
-// Sync the entire DB connection
+
 ;(async () => {
   try {
     await dbHandler.sync({ alter: true })
