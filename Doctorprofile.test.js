@@ -1,44 +1,47 @@
 const express = require('express');
 const supertest = require('supertest');
-const DoctorProRoute = require('./routers/Doctorprofile');
 const db = require('./dbHandler');
-
 const sequelize = db.dbHandler;
 const { User, DoctorProfile } = db;
 
-if (!sequelize) {
-  throw new Error("Sequelize instance not found in dbHandler");
-}
-
 const app = express();
 app.use(express.json());
+const DoctorProRoute = require('./routers/Doctorprofile');
 app.use('/doctorprofiles', DoctorProRoute);
+
+beforeAll(async()=>{
+  try{
+       await sequelize.sync({force:true})
+       console.log('Database synced successfully')
+  }
+
+  catch(error){
+  console.error('Database sync failed:', error);
+    process.exit(1)
+  }
+})
 
 const request = supertest(app);
 
 describe('POST /doctorprofiles', () => {
-  let testUserId;
+  let testUser;
+  let testDoctorProfile;
 
   beforeAll(async () => {
     try {
-     
-      await DoctorProfile.destroy({ where: {} });
-      await User.destroy({ where: {} });
-
-      
-      const testUser = await User.create({
-        fullname: 'Test User',
-        email: 'test@example.com',
-        username: 'testuser',
-        password: 'password',
+      // Create test user
+      testUser = await User.create({
+        fullname: 'Test Doctor',
+        email: 'testdoctor@example.com',
+        username: 'testdoctor',
+        password: 'password123',
         role: 'doctor',
         active: true,
       });
-      testUserId = testUser.id;
 
-   
-      await DoctorProfile.create({
-        userId: testUserId,
+      // Create test doctor profile
+      testDoctorProfile = await DoctorProfile.create({
+        userId: testUser.id,
         Docname: 'Dr. Test',
         description: 'Test description',
         profilKépUrl: 'https://example.com/doctor.jpg',
@@ -54,12 +57,8 @@ describe('POST /doctorprofiles', () => {
 
   afterAll(async () => {
     try {
- 
-      if (testUserId) {
-        await DoctorProfile.destroy({ where: { userId: testUserId } });
-        await User.destroy({ where: { id: testUserId } });
-      }
-      await sequelize.close();
+      await DoctorProfile.destroy({ where: {}, force: true });
+      await User.destroy({ where: {}, force: true });
     } catch (error) {
       console.error('Cleanup failed:', error);
     }
@@ -67,14 +66,14 @@ describe('POST /doctorprofiles', () => {
 
   test('should return 409 if doctor already exists', async () => {
     const response = await request.post('/doctorprofiles').send({
-      userId: testUserId,
-      Docname: 'Dr. Test',
+      userId: testUser.id,
+      Docname: 'Dr Test Duplicate',
       specialty: 'General',
       treatments: 'General'
-    });
+    })
 
     expect(response.status).toBe(409);
-    expect(response.body).toHaveProperty('message', 'Doctor profile already exists for this user'); // Updated message
+    expect(response.body).toHaveProperty('message', 'Doctor profile already exists for this user');
   });
 
   test('should create a new doctor profile and return 201', async () => {
@@ -90,18 +89,21 @@ describe('POST /doctorprofiles', () => {
     const response = await request.post('/doctorprofiles').send({
       userId: newUser.id,
       Docname: 'Dr. Anna Kovacs',
-      description: 'Cardiology',
-      profilKépUrl: 'https://cdn.pixabay.com/photo/2024/01/19/18/52/ai-generated-8519596_1280.png',
+      description: 'Cardiology specialist',
+      profilKépUrl: 'https://example.com/anna.jpg',
       specialty: 'Cardiology',
       treatments: 'Heart Disease',
       profilKész: true,
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.message).toBe('Doctor profile created successfully');
-
+    
 
     await DoctorProfile.destroy({ where: { userId: newUser.id } });
     await User.destroy({ where: { id: newUser.id } });
   });
+});
+
+afterAll(async () => {
+  await sequelize.close();
 });

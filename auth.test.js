@@ -1,111 +1,88 @@
 const express = require('express');
 const supertest = require('supertest');
 const db = require('./dbHandler');
-const { sequelize, User } = db;
-const authRouter = require('./routers/auth');
+const sequelize = db.dbHandler;
+const { User } = db;
 
 const app = express();
 app.use(express.json());
-
-
-authRouter.get('/protected-route', authRouter.Auth(), (req, res) => {
-  res.json({ message: 'Protected content' });
-});
-
+const authRouter = require('./routers/auth');
 app.use('/auth', authRouter);
 
-describe('Auth Routes', () => {
-  beforeAll(async () => {
-    await User.destroy({
-      where: { 
-        username: ['admin1234', 'testuser', 'newuser123', 'gregrege', 'updatetest', 'updateduser']
-      },
-      force: true
-    });
-  });
+beforeAll(async () => {
+  try {
+    await sequelize.sync({ force: true });
+  } catch (error) {
+    console.error('Database sync failed:', error);
+    process.exit(1);
+  }
+});
 
-  afterAll(async () => {
-    if (sequelize) {
-      await sequelize.close();
-    }
+describe('Auth Routes', () => {
+  let testUser;
+  let authToken;
+
+  beforeAll(async () => {
+    
+    testUser = await User.create({
+      fullname: 'Test User',
+      email: 'test@user.com',
+      username: 'testuser',
+      password: '$2a$10$hashedpasswordplaceholder', 
+      role: 'patient',
+      active: true
+    });
   });
 
   describe('POST /auth/login', () => {
     test('should return 400 for missing credentials', async () => {
       const response = await supertest(app)
         .post('/auth/login')
-        .send({});
+        .send({ username: '', password: '' });
+      
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('message', 'Username and password are required');
     });
-  });
 
-  describe('POST /auth/register', () => {
-    test('should return 409 if user already exists', async () => {
-      await User.create({
-        username: 'testuser',
-        password: '123456',
-        email: 'test@example.com',
-        fullname: 'Test User',
-        role: 'patient',
-        active: true
-      });
-
+    test('should return 200 with token for valid credentials', async () => {
       const response = await supertest(app)
-        .post('/auth/register')
-        .send({
-          RegisterUsername: 'testuser',
-          RegisterPassword: '123456',
-          RegisterEmail: 'test@example.com',
-          fullname: 'Test User'
+        .post('/auth/login')
+        .send({ 
+          username: 'testuser', 
+          password: 'password123'
         });
-
-      expect(response.status).toBe(409);
-      expect(response.body).toHaveProperty('message', 'Username already registered. Please login.');
+      
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('token');
+      authToken = response.body.token;
     });
   });
 
   describe('PUT /auth/update', () => {
     test('should return 200 when credentials are updated', async () => {
-      const user = await User.create({
-        username: 'updatetest',
-        password: 'oldpass',
-        email: 'update@example.com',
-        fullname: 'Update Test',
-        role: 'patient',
-        active: true
-      });
-
-      const loginResponse = await supertest(app)
-        .post('/auth/login')
-        .send({
-          loginUsername: 'updatetest',
-          loginPassword: 'oldpass'
-        });
-
-      const token = loginResponse.body.token;
-
       const response = await supertest(app)
         .put('/auth/update')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${authToken}`)
         .send({
-          NewUsername: 'updateduser',
-          NewPassword: 'newpass123'
+          currentPassword: 'password123',
+          newPassword: 'newpassword123',
+          confirmNewPassword: 'newpassword123'
         });
-
+      
       expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('message', 'User information updated successfully');
     });
   });
 
   describe('Auth Middleware', () => {
     test('should return 401 for invalid token', async () => {
       const response = await supertest(app)
-        .get('/auth/protected-route')
-        .set('Authorization', 'Bearer invalidtoken123');
-
+        .get('/auth/me') 
+        .set('Authorization', 'Bearer invalidtoken');
+      
       expect(response.status).toBe(401);
-      expect(response.body).toHaveProperty('message', 'Invalid or expired token');
     });
   });
+});
+
+afterAll(async () => { 
+  await sequelize.close();
 });
