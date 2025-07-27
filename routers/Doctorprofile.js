@@ -18,52 +18,38 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
+  const { userId, Docname, description, profilKépUrl, specialty, treatments } = req.body;
+
   try {
-    const {
-      userId,
-      Docname,
-      description,
-      profilKépUrl,
-      specialty,
-      treatments,
-      profilKész = true
-    } = req.body;
-
-
-    const user = await db.User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
    
-    const existingProfile = await DoctorProfile.findOne({ 
+    const existingDoctor = await DoctorProfile.findOne({ 
       where: { userId } 
     });
-    
-    if (existingProfile) {
+
+    if (existingDoctor) {
       return res.status(409).json({ 
-        message: 'Doctor profile already exists for this user' 
+        message: 'Doctor profile already exists for this user'
       });
     }
 
-    const newProfile = await DoctorProfile.create({
+
+    const newDoctor = await DoctorProfile.create({
       userId,
       Docname,
       description,
       profilKépUrl,
-      specialty,
+      specialty, 
       treatments,
-      profilKész
+      profilKész: true
     });
 
-    res.status(201).json({
-      message: 'Doctor profile created successfully',
-      profile: newProfile
-    });
-  } catch (err) {
+    res.status(201).json(newDoctor);
+    
+  } catch (error) {
+    console.error('Error creating doctor profile:', error);
     res.status(500).json({ 
-      message: 'Doctor profile creation failed', 
-      error: err.message 
+      message: 'Error creating doctor profile',
+      error: error.message 
     });
   }
 });

@@ -1,86 +1,70 @@
 const express = require('express');
 const router = express.Router();
-const { Appointment, Timeslot } = require('../dbHandler');
+const { Appointment, Timeslot, DoctorProfile } = require('../dbHandler');
 
 
 router.get('/free/:doctorId', async (req, res) => {
   try {
-    const { doctorId } = req.params;
-    
-    const allSlots = await Timeslot.findAll({ 
+    const doctorId = parseInt(req.params.doctorId);
+    if (isNaN(doctorId)) {
+      return res.status(400).json({ message: 'Invalid doctor ID' });
+    }
+
+    const freeSlots = await Timeslot.findAll({
       where: { 
         doctorId,
         foglalt: false 
-      }
-    });
-    
-    const bookedSlots = await Appointment.findAll({ 
-      where: { doctorId },
-      include: [Timeslot]
+      },
+      attributes: ['id', 'kezdes', 'veg', 'foglalt']
     });
 
-    const bookedSlotIds = bookedSlots.map(app => app.timeslotId);
-    const freeSlots = allSlots.filter(slot => !bookedSlotIds.includes(slot.id));
-
-    return res.status(200).json(freeSlots);
+    res.status(200).json(freeSlots);
   } catch (error) {
     console.error('Error fetching free slots:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-router.get('/', async (req, res) => {
-  try {
-    const appointments = await Appointment.findAll({
-      include: [Timeslot] 
-    });
-    return res.status(200).json(appointments);
-  } catch (error) {
-    console.error('Error fetching appointments:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    const { timeslotId, páciensId, név, megjegyzés } = req.body;
+    const { timeslotId, név, doctorId } = req.body;
 
-    if (!timeslotId || !név) {
-      return res.status(400).json({ message: 'Timeslot ID and patient name are required' });
+    if (!timeslotId || !név || !doctorId) {
+      return res.status(400).json({ message: 'Timeslot ID, patient name and doctor ID are required' });
     }
 
-    const existingAppointment = await Appointment.findOne({ where: { timeslotId } });
-    if (existingAppointment) {
+    const timeslot = await Timeslot.findOne({ where: { id: timeslotId } });
+    if (!timeslot) {
+      return res.status(404).json({ message: 'Timeslot not found' });
+    }
+
+    if (timeslot.foglalt) {
       return res.status(409).json({ 
         message: 'This slot has already been booked, please try another' 
       });
     }
 
+    const newAppointment = await Appointment.create({
+      doctorId,
+      timeslotId,
+      név,
+      létrehozásDátuma: new Date()
+    });
 
     await Timeslot.update(
       { foglalt: true },
       { where: { id: timeslotId } }
     );
 
-    const newAppointment = await Appointment.create({
-      timeslotId,
-      páciensId: páciensId || null,
-      név,
-      megjegyzés,
-      létrehozásDátuma: new Date()
-    });
-
     return res.status(201).json({ 
-      message: 'Appointment created successfully',
-      appointment: newAppointment 
+      id: newAppointment.id,
+      message: 'Appointment created successfully'
     });
   } catch (error) {
     console.error('Error creating appointment:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 router.delete('/:id', async (req, res) => {
   try {
@@ -92,10 +76,9 @@ router.delete('/:id', async (req, res) => {
     });
 
     if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
+      return res.status(404).json({ message: 'No appointment has been found' });
     }
 
-   
     await Timeslot.update(
       { foglalt: false },
       { where: { id: appointment.timeslotId } }

@@ -21,29 +21,41 @@ router.post('/', async (req, res) => {
     const newShift = await Shift.create({ doctorId, dátum, típus });
     const shiftId = newShift.id;
 
-    const start = new Date(`${dátum}T09:00:00`);
-    const end = new Date(`${dátum}T17:00:00`);
+    const startHour = típus === 'délelőtt' ? 9 : 13;
+    const endHour = típus === 'délelőtt' ? 12 : 17;
     const slots = [];
 
-    while (start < end) {
-      const to = new Date(start.getTime() + 15 * 60000);
-      const timeslot = await Timeslot.create({
-        doctorId,
-        shiftId:newShift.id,
-        dátum,
-        típus,
-        from: new Date(start),
-        to
-      });
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const kezdes = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const vegMinute = minute + 15;
+        const vegHour = vegMinute >= 60 ? hour + 1 : hour;
+        const veg = `${vegHour.toString().padStart(2, '0')}:${(vegMinute % 60).toString().padStart(2, '0')}`;
 
-      slots.push(timeslot);
-      start.setMinutes(start.getMinutes() + 15);
+        const timeslot = await Timeslot.create({
+          doctorId,
+          shiftId,
+          dátum,
+          típus,
+          kezdes, 
+          veg,  
+          foglalt: false
+        });
+
+        slots.push(timeslot);
+      }
     }
 
-    res.status(201).json({ message: 'Shifts created', newShift, slots });
+    res.status(201).json({ 
+      shift: newShift,
+      timeslots: slots 
+    });
   } catch (error) {
-    console.error('Shift creation failed:', error)
-    res.status(500).json({ message: 'Shift not created', error: error.message })
+    console.error('Shift creation failed:', error);
+    res.status(500).json({ 
+      message: 'Shift not created', 
+      error: error.message 
+    });
   }
 });
 

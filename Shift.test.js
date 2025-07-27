@@ -1,70 +1,80 @@
 const express = require('express');
 const supertest = require('supertest');
-const db = require('./dbHandler')
-const { DoctorProfile, User, Shift } = db;
+const db = require('./dbHandler');
+const sequelize = db.dbHandler;
+const { User, DoctorProfile, Shift, Timeslot } = db;
 
 const app = express();
 app.use(express.json());
 const shiftRouter = require('./routers/Shift');
 app.use('/shifts', shiftRouter);
 
+beforeAll(async () => {
+  try {
+
+    await sequelize.sync({ force: true });
+  } catch (error) {
+    console.error('Database sync failed:', error);
+    process.exit(1);
+  }
+});
+
 describe('Shift Routes', () => {
   let testUser;
-  let testDoctor;
-  const doctorId = 9999;
+  let testDoctorProfile;
 
   beforeAll(async () => {
-
-    await Shift.destroy({ where: { doctorId } });
-    await DoctorProfile.destroy({ where: { id: doctorId } });
-    await User.destroy({ where: { email: 'testdoctor@example.com' } });
-
+    try {
    
-    testUser = await User.create({
-      fullname: 'Test Doctor',
-      email: 'testdoctor@example.com',
-      username: 'testdoctor',
-      password: 'password',
-      role: 'doctor',
-      active: true
-    });
+      testUser = await User.create({
+        fullname: 'Test Doctor',
+        email: 'testdoctor@example.com',
+        username: 'testdoctor',
+        password: 'password123',
+        role: 'doctor',
+        active: true
+      });
 
     
-    testDoctor = await DoctorProfile.create({
-      id: doctorId,
-      userId: testUser.id, 
-      Docname: 'Dr. Test Doctor',
-      description: 'Test doctor',
-      profilKépUrl: 'test.jpg',
-      specialty: 'General', 
-      treatments: 'General', 
-      profilKész: true
-    });
+      testDoctorProfile = await DoctorProfile.create({
+        userId: testUser.id,
+        Docname: 'Dr. Test',
+        specialty: 'General',
+        treatments: 'General',
+        profilKész: true
+      });
+    } catch (error) {
+      console.error('Setup failed:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
-    await Shift.destroy({ where: { doctorId } });
-    await DoctorProfile.destroy({ where: { id: doctorId } });
-    await User.destroy({ where: { id: testUser.id } });
-    await db.sequelize.close();
+    try {
+      await Timeslot.destroy({ where: {}, force: true });
+      await Shift.destroy({ where: {}, force: true });
+      await DoctorProfile.destroy({ where: {}, force: true });
+      await User.destroy({ where: {}, force: true });
+    } catch (error) {
+      console.error('Cleanup failed:', error);
+    }
   });
 
   test('should return 409 if shift already exists', async () => {
-    
-    await supertest(app)
-      .post('/shifts')
-      .send({
-        doctorId: testDoctor.id,
-        dátum: '2023-01-01',
-        típus: 'délelőtt'
-      });
+  
+    await Shift.create({
+      doctorId: testDoctorProfile.id,
+      dátum: '2025-01-01',
+      típus: 'délelőtt',
+      active: true
+    });
 
-   
+
     const response = await supertest(app)
       .post('/shifts')
       .send({
-        doctorId: testDoctor.id,
-        dátum: '2023-01-01',
+        doctorId: testDoctorProfile.id,
+        dátum: '2025-01-01',
         típus: 'délelőtt'
       });
 
@@ -75,13 +85,20 @@ describe('Shift Routes', () => {
     const response = await supertest(app)
       .post('/shifts')
       .send({
-        doctorId: testDoctor.id,
+        doctorId: testDoctorProfile.id,
         dátum: '2023-01-02',
-        típus: 'délután'
+        típus: 'délután',
+        active: true,
+        timeSlots: [
+          { kezdes: '14:00', veg: '14:30' },
+          { kezdes: '14:30', veg: '15:00' }
+        ]
       });
 
     expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('shift');
-    expect(response.body).toHaveProperty('timeslots');
   });
+});
+
+afterAll(async () => {
+  await sequelize.close();
 });

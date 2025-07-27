@@ -68,6 +68,9 @@ const treatment = dbHandler.define('Treatment', {
 user.hasOne(doctorProfile, { foreignKey: 'userId' });
 doctorProfile.belongsTo(user, { foreignKey: 'userId' });
 
+doctorProfile.hasMany(timeslot, { foreignKey: 'doctorId' });
+timeslot.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
+
 doctorProfile.hasMany(shift, { foreignKey: 'doctorId' });
 shift.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
 
@@ -82,6 +85,8 @@ appointment.belongsTo(user, { foreignKey: 'páciensId' });
 
 doctorProfile.hasMany(treatment, { foreignKey: 'doctorId' });
 treatment.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
+
+timeslot.hasMany(appointment, { foreignKey: 'timeslotId' })
 
 
 module.exports = {
