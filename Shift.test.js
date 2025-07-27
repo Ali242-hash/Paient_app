@@ -1,7 +1,7 @@
 const express = require('express');
 const supertest = require('supertest');
-const db = require('./dbHandler')
-const { DoctorProfile, User, Shift } = db;
+const db = require('./dbHandler');
+const { DoctorProfile, User, Shift, sequelize } = db; 
 
 const app = express();
 app.use(express.json());
@@ -19,7 +19,7 @@ describe('Shift Routes', () => {
     await DoctorProfile.destroy({ where: { id: doctorId } });
     await User.destroy({ where: { email: 'testdoctor@example.com' } });
 
-   
+    
     testUser = await User.create({
       fullname: 'Test Doctor',
       email: 'testdoctor@example.com',
@@ -29,7 +29,6 @@ describe('Shift Routes', () => {
       active: true
     });
 
-    
     testDoctor = await DoctorProfile.create({
       id: doctorId,
       userId: testUser.id, 
@@ -46,11 +45,11 @@ describe('Shift Routes', () => {
     await Shift.destroy({ where: { doctorId } });
     await DoctorProfile.destroy({ where: { id: doctorId } });
     await User.destroy({ where: { id: testUser.id } });
-    await db.sequelize.close();
+    if (sequelize) await sequelize.close(); 
   });
 
   test('should return 409 if shift already exists', async () => {
-    
+
     await supertest(app)
       .post('/shifts')
       .send({
@@ -59,7 +58,7 @@ describe('Shift Routes', () => {
         típus: 'délelőtt'
       });
 
-   
+  
     const response = await supertest(app)
       .post('/shifts')
       .send({
@@ -79,6 +78,9 @@ describe('Shift Routes', () => {
         dátum: '2023-01-02',
         típus: 'délután'
       });
+
+  console.log('Response status:', response.status);
+  console.log('Response body:', response.body);
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('shift');

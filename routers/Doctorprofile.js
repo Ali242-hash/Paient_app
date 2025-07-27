@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
 
    
     const existingProfile = await DoctorProfile.findOne({ 
-      where: { userId } 
+      where: { userId:req.body.userId } 
     });
     
     if (existingProfile) {

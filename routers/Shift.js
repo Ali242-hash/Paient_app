@@ -10,6 +10,7 @@ router.post('/', async (req, res) => {
   }
 
   try {
+
     const existingShift = await Shift.findOne({
       where: { doctorId, dátum, típus }
     });
@@ -18,32 +19,50 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ message: 'Shift already exists' });
     }
 
+
     const newShift = await Shift.create({ doctorId, dátum, típus });
     const shiftId = newShift.id;
 
-    const start = new Date(`${dátum}T09:00:00`);
-    const end = new Date(`${dátum}T17:00:00`);
+ 
+    const start = new Date(`${dátum}T${típus === 'délelőtt' ? '09:00:00' : '13:00:00'}`);
+    const end = new Date(`${dátum}T${típus === 'délelőtt' ? '12:00:00' : '17:00:00'}`);
     const slots = [];
 
-    while (start < end) {
-      const to = new Date(start.getTime() + 15 * 60000);
-      const timeslot = await Timeslot.create({
-        doctorId,
-        shiftId:newShift.id,
-        dátum,
-        típus,
-        from: new Date(start),
-        to
-      });
-
-      slots.push(timeslot);
-      start.setMinutes(start.getMinutes() + 15);
+    let current = new Date(start);
+    while (current < end) {
+      const slotEnd = new Date(current.getTime() + 15 * 60000);
+      
+      try {
+        const timeslot = await Timeslot.create({
+          doctorId,
+          shiftId,
+          dátum,
+          típus,
+          from: current,
+          to: slotEnd,
+          foglalt: false
+        });
+        slots.push(timeslot);
+      } catch (err) {
+        console.error('Failed to create timeslot:', err);
+        continue;
+      }
+      
+      current = new Date(slotEnd);
     }
 
-    res.status(201).json({ message: 'Shifts created', newShift, slots });
+   
+    res.status(201).json({ 
+      shift: newShift,  
+      timeslots: slots 
+    });
+
   } catch (error) {
-    console.error('Shift creation failed:', error)
-    res.status(500).json({ message: 'Shift not created', error: error.message })
+    console.error('Shift creation failed:', error);
+    res.status(500).json({ 
+      message: 'Shift not created', 
+      error: error.message 
+    });
   }
 });
 

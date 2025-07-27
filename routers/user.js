@@ -3,18 +3,18 @@ const router = express.Router();
 const { User } = require('../dbHandler');
 const { Model } = require('sequelize');
 
-router.get('/', (req, res) => {
+router.get('/users/all', (req, res) => {
   res.json({ message: 'User route works!' });
 });
 
 const isAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
-    return res.status(403).json({ message: 'Access denied: Admins only' });
+    return res.status(403).json({  message: 'Forbidden: Admin access required' });
   }
   next();
 };
 
-router.get('/', isAdmin, async (req, res) => {
+router.get('/all', isAdmin, async (req, res) => {
   try {
     const users = await User.findAll();
     res.json(users);
@@ -23,7 +23,7 @@ router.get('/', isAdmin, async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/users/all', async (req, res) => {
   try {
     const admins = await User.findAll({ where: { role: 'admin' } });
     res.status(200).json(admins);
@@ -32,11 +32,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/users/register-admin', async (req, res) => {
   try {
-    const { NewAdminName, NewAdminEmail, NewAdminUsername, NewAdminPass } = req.body;
+      const { 
+      fullname, 
+      NewAdminName,
+      email,
+      NewAdminEmail,
+      username,
+      NewAdminUsername,
+      password,
+      NewAdminPass
+    } = req.body;
 
-    if (!NewAdminUsername || !NewAdminPass) {
+    const finalFullname = fullname || NewAdminName;
+    const finalEmail = email || NewAdminEmail;
+    const finalUsername = username || NewAdminUsername;
+    const finalPassword = password || NewAdminPass;
+
+  if (!finalUsername || !finalPassword) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
@@ -46,8 +60,8 @@ router.post('/', async (req, res) => {
     }
 
     await User.create({
-      fullname: NewAdminName,
-      email: NewAdminEmail,
+      fullname: finalFullname,
+      email: finalEmail,
       username: NewAdminUsername,
       password: NewAdminPass,  
       role: 'admin',
@@ -60,48 +74,52 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/register-admin', async (req, res) => {
   try {
-    const { NewFullName, NewEmail, NewUsername, NewPassword } = req.body;
+        const { 
+      fullname = req.body.NewAdminName,
+      email = req.body.NewAdminEmail,
+      username = req.body.NewAdminUsername,
+      password = req.body.NewAdminPass
+    } = req.body;
 
-    if (!NewUsername || !NewPassword) {
+    if (!username || !password) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    const existing = await User.findOne({ where: { username: NewUsername } });
+    const existing = await User.findOne({where:{username}})
     if (existing) {
-      return res.status(409).json({ message: 'This user has already registered' });
+      return res.status(409).json({ message: 'This Admin has already registered' });
     }
 
     await User.create({
-      fullname: NewFullName,
-      email: NewEmail,
-      username: NewUsername,
-      password: NewPassword, 
-      role: 'patient',
+      fullname,
+      email,
+      username,
+      password,
+      role: 'admin',
       active: true
     });
 
-    res.json({ message: 'Registered Successfully' });
+    res.status(201).json({ message: 'Admin registered successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Error registering user', error: err.message });
   }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
-    const oneUser = await User.findOne({ where: { id } });
+    const oneUser = await User.findByPk(id); 
+    
     if (!oneUser) {
-      return res.status(404).json({ message: 'This user has not been found in the system' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    await User.destroy({ where: { id } });
-    res.status(204).end();
+    await oneUser.destroy();
+    return res.status(204).json();
   } catch (err) {
     res.status(500).json({ message: 'Error deleting user', error: err.message });
   }
 });
-
 module.exports = router
