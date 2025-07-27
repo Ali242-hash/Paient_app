@@ -2,32 +2,28 @@ const express = require('express');
 const router = express.Router();
 const { Appointment, Timeslot, DoctorProfile } = require('../dbHandler');
 
+
 router.get('/free/:doctorId', async (req, res) => {
   try {
     const doctorId = parseInt(req.params.doctorId);
-    
-
     if (isNaN(doctorId)) {
       return res.status(400).json({ message: 'Invalid doctor ID' });
     }
 
-   
-    const freeSlots = await Timeslot.findAll({ 
+    const freeSlots = await Timeslot.findAll({
       where: { 
         doctorId,
         foglalt: false 
       },
-      attributes: ['id', 'kezdes', 'veg', 'foglalt', 'doctorId'],
-      raw: true
+      attributes: ['id', 'kezdes', 'veg', 'foglalt']
     });
 
-    return res.status(200).json(freeSlots);
+    res.status(200).json(freeSlots);
   } catch (error) {
-    console.error('GET /free error:', error);
-    return res.status(500).json({ message: 'Failed to fetch free timeslots' });
+    console.error('Error fetching free slots:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
-
 
 router.post('/', async (req, res) => {
   try {

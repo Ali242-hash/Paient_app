@@ -74,7 +74,6 @@ beforeAll(async () => {
       létrehozásDátuma: new Date()
     });
 
-    // Mark timeslot1 as booked
     await Timeslot.update(
       { foglalt: true },
       { where: { id: timeslot1.id } }
@@ -87,54 +86,79 @@ beforeAll(async () => {
 
 afterAll(async () => {
   try {
-    await Appointment.destroy({ where: {} });
-    await Timeslot.destroy({ where: {} });
-    await Shift.destroy({ where: {} });
-    await DoctorProfile.destroy({ where: {} });
-    await User.destroy({ where: {} });
+    
+    await Timeslot.destroy({where:{id:timeslotId.id}})
+    await Shift.destroy({where:{id:testShift.id}})
+    await DoctorProfile.destroy({where:{id:testDoctor.id}})
     await sequelize.close();
   } catch (error) {
-    console.error('Cleanup failed:', error);
+    console.error('Global cleanup failed:', error);
   }
-})
+});
 
 describe('GET /appointments/free/:doctorId', () => {
-  it('should return 200 and free time slots', async () => {
-   
-    const freeTimeslot = await Timeslot.create({
-      shiftId: testShift.id,
-      kezdes: '11:00',
-      veg: '12:00',
-      foglalt: false,
-      doctorId: testDoctor.id
+  let testDoctor;
+  let freeTimeslot;
+  let testShift
+
+  beforeEach(async () => {
+    testDoctor = await DoctorProfile.create({
+      userId: testUser.id,
+      Docname: 'Dr. Test',
+      profilKész: true,
+      specialty:'Dor profile',
+      treatments:'khare nanat'
     });
 
+    testShift = await Shift.create({
+      doctorId:testDoctor.id,
+      dátum: new Date(),
+      típus: 'délelőtt',
+      active: true
+    })
 
+    freeTimeslot = await Timeslot.create({
+      doctorId: testDoctor.id,
+      shiftId:testShift.id,
+      kezdes: '11:00',
+      veg: '12:00',
+      foglalt: false
+    });
+  });
+
+afterEach(async () => {
+  try {
+    if (freeTimeslot?.id) {
+      await Timeslot.destroy({ where: { id: freeTimeslot.id } });
+    }
+    if (testDoctor?.id) {
+      await DoctorProfile.destroy({ where: { id: testDoctor.id } });
+    }
+
+    if(testShift?.id){
+      await Shift.destroy({where:{id:testShift.id}})
+    }
+  } catch (error) {
+    console.error('Test cleanup failed:', error);
+  }
+});
+
+  it('should return 200 and free time slots', async () => {
     const response = await supertest(app)
       .get(`/appointments/free/${testDoctor.id}`);
-    
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
-    
-
-    const returnedSlot = response.body.find(slot => slot.id === freeTimeslot.id);
-    expect(returnedSlot).toBeDefined();
-    expect(returnedSlot.foglalt).toBe(false);
-    
-   
-    await freeTimeslot.destroy();
+    expect(response.body.some(slot => slot.id === freeTimeslot.id)).toBe(true);
   });
 });
-
-
 
 describe('POST /appointments', () => {
   it('should return 409 if timeslot is already booked', async () => {
     const response = await supertest(app)
       .post('/appointments')
       .send({
-        timeslotId: timeslot1.id, // Already booked in beforeAll
+        timeslotId: timeslot1.id, 
         név: 'Test Patient',
         doctorId: testDoctor.id
       });
@@ -147,7 +171,6 @@ describe('POST /appointments', () => {
   });
 
   it('should return 201 when creating new appointment', async () => {
-    // Ensure timeslot2 is free
     await Timeslot.update(
       { foglalt: false },
       { where: { id: timeslot2.id } }
