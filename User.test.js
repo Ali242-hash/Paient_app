@@ -57,7 +57,7 @@ describe('User Routes', () => {
       const nonAdminApp = express();
       nonAdminApp.use(express.json());
       
-      // Mock non-admin user
+
       nonAdminApp.use((req, res, next) => {
         req.user = { role: 'patient' };
         next();
@@ -74,7 +74,7 @@ describe('User Routes', () => {
       const adminApp = express();
       adminApp.use(express.json());
       
-      // Mock admin user
+
       adminApp.use((req, res, next) => {
         req.user = { 
           id: testAdmin.id,
@@ -145,7 +145,7 @@ describe('User Routes', () => {
       
       expect(response.statusCode).toBe(204);
       
-      // Verify deletion
+
       const deletedUser = await User.findByPk(newUser.id);
       expect(deletedUser).toBeNull();
     });
