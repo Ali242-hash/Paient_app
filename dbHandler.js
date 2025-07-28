@@ -65,28 +65,26 @@ const treatment = dbHandler.define('Treatment', {
 });
 
 
-user.hasOne(doctorProfile, { foreignKey: 'userId' });
-doctorProfile.belongsTo(user, { foreignKey: 'userId' });
+user.hasOne(doctorProfile, { foreignKey: 'userId' })
+user.hasMany(appointment, { foreignKey: 'páciensId' })
 
-doctorProfile.hasMany(timeslot, { foreignKey: 'doctorId' });
-timeslot.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
-
+doctorProfile.belongsTo(user, { foreignKey: 'userId' })
+doctorProfile.hasMany(timeslot, { foreignKey: 'doctorId' })
 doctorProfile.hasMany(shift, { foreignKey: 'doctorId' });
-shift.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
+doctorProfile.hasMany(treatment, { foreignKey: 'doctorId' })
 
-shift.hasMany(timeslot, { foreignKey: 'shiftId' });
+timeslot.belongsTo(doctorProfile, { foreignKey: 'doctorId' })
 timeslot.belongsTo(shift, { foreignKey: 'shiftId' });
+timeslot.hasOne(appointment, { foreignKey: 'timeslotId' })
 
-timeslot.hasOne(appointment, { foreignKey: 'timeslotId' });
-appointment.belongsTo(timeslot, { foreignKey: 'timeslotId' });
+shift.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
+shift.hasMany(timeslot, { foreignKey: 'shiftId' });
 
-user.hasMany(appointment, { foreignKey: 'páciensId' });
-appointment.belongsTo(user, { foreignKey: 'páciensId' });
+appointment.belongsTo(timeslot, { foreignKey: 'timeslotId' })
+appointment.belongsTo(user, { foreignKey: 'páciensId' })
 
-doctorProfile.hasMany(treatment, { foreignKey: 'doctorId' });
-treatment.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
+treatment.belongsTo(doctorProfile, { foreignKey: 'doctorId' })
 
-timeslot.hasMany(appointment, { foreignKey: 'timeslotId' })
 
 
 module.exports = {

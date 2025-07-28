@@ -11,7 +11,7 @@ app.use('/doctorprofiles', DoctorProRoute);
 
 beforeAll(async()=>{
   try{
-       await sequelize.sync({force:true})
+       await sequelize.sync({alter:true})
        console.log('Database synced successfully')
   }
 
@@ -29,7 +29,7 @@ describe('POST /doctorprofiles', () => {
 
   beforeAll(async () => {
     try {
-      // Create test user
+
       testUser = await User.create({
         fullname: 'Test Doctor',
         email: 'testdoctor@example.com',
@@ -39,7 +39,7 @@ describe('POST /doctorprofiles', () => {
         active: true,
       });
 
-      // Create test doctor profile
+  
       testDoctorProfile = await DoctorProfile.create({
         userId: testUser.id,
         Docname: 'Dr. Test',

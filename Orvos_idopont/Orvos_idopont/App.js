@@ -28,25 +28,47 @@ function DoctorScreen({ navigation }) {
   const [refresh, setRefresh] = useState(false);
   const [appointments, setAppointments] = useState([])
 
-  async function Load() {
+async function Load() {
+  try {
     const result = await axios.get("http://192.168.0.242:3000/doctorprofiles")
-    const initializedDoctors = result.data.map(doc => ({ ...doc, number: 1 }))
-    setlistOfDoctors(initializedDoctors);
-    setAppointments(initializedDoctors.map(() => ({
+    const doctors = result.data;
+
+   
+    const doctorsWithSlots = await Promise.all(doctors.map(async (doc) => {
+      
+      const slotsResponse = await axios.get(`http://192.168.0.242:3000/shifts/${doc.id}/timeslots`);
+      return {
+        ...doc,
+        timeslots: slotsResponse.data,
+        number: 1
+      }
+    }))
+
+    setlistOfDoctors(doctorsWithSlots);
+
+    setAppointments(doctorsWithSlots.map(doctor => ({
       name: '',
       username: '',
       email: '',
       date: new Date(),
-      timeslot: '09:00'
-    })))
+      timeslotId: doctor.timeslots.length > 0 ? doctor.timeslots[0].id : null
+    })));
+  } catch (error) {
+    console.error("Error loading doctors or timeslots:", error);
   }
+}
 
   async function ConfirmRegistration(index, doctor) {
     const appointment = appointments[index];
+    if(!appointment.name || !appointment.username || !appointment.email){
+
+      alert("please fill in all fields")
+      return
+    }
     const payload = {
       név: appointment.name,
       megjegyzés: `${appointment.username} | ${appointment.email}`,
-      timeslotId: doctor.id,
+      timeslotId: appointment.timeslotId
     };
     try {
       let all = await AsyncStorage.getItem("appointments")
@@ -141,7 +163,7 @@ function DoctorScreen({ navigation }) {
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                   <Text style={{textAlign:"center",fontWeight:"bold",marginTop:15,paddingVertical:10}}>Consultation Time</Text>
                   <Picker
-                    selectedValue={appointment.timeslot}
+                    selectedValue={appointment.timeslotId}
                     style={{ height: 50, width: 140, borderRadius:10 }}
                     onValueChange={(value) => {
                       const updated = [...appointments];
@@ -150,7 +172,7 @@ function DoctorScreen({ navigation }) {
                     }}
                   >
                     {generateTimeSlots().map((slot, idx) => (
-                      <Picker.Item key={idx} label={slot} value={slot} />
+                    <Picker.Item key={slot.id} label={`${slot.kezdes} - ${slot.veg}`} value={slot.id} />
                     ))}
                   </Picker>
 
