@@ -2,6 +2,18 @@ const express = require('express');
 const router = express.Router();
 const { Shift, Timeslot } = require('../dbHandler');
 
+router.get('/:doctorId/timeslots', async (req, res) => {
+  try {
+    const timeslots = await Timeslot.findAll({
+      where: { doctorId: req.params.doctorId, foglalt: false }, 
+      order: [['kezdes', 'ASC']]
+    })
+    res.json(timeslots);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching timeslots', error: error.message });
+  }
+})
+
 router.post('/', async (req, res) => {
   const { doctorId, dátum, típus } = req.body;
 
