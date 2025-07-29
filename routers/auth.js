@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { User } = require('../dbHandler');
-const JWT = require('jsonwebtoken');
-const secretkey = 'KHARETO';
-const expiresIn = '3h';
+const JWT = require('jsonwebtoken')
+const secretkey = 'madaretosagbegad666';
+const expiresIn = '3h'
+const bcrypt = require('bcrypt')
 
 router.post('/login', async (req, res) => {
   try {
     const { loginUsername, loginPassword } = req.body;
-    console.log('Incoming login request:', loginUsername);
 
     if (!loginUsername || !loginPassword) {
       return res.status(400).json({ message: 'Username and password are required' });
@@ -16,9 +16,17 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ where: { username: loginUsername } });
 
-    if (!user || user.password !== loginPassword) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+    if(!user){
+
+      return res.status(401).json({'message':'invalid username or password'})
     }
+
+    const validPassword = await bcrypt.compare(loginPassword,user.password)
+    if(!validPassword){
+
+      return res.status(401).json({'message':'invalid username or password'})
+    }
+  
 
     const token = JWT.sign(
       { username: user.username, role: user.role },
@@ -33,12 +41,11 @@ router.post('/login', async (req, res) => {
       username: user.username,
       role: user.role,
       active: user.active,
-      createdAt: user.createdAt, 
+      createdAt: user.createdAt,
       token,
       message: 'Login successful'
     });
   } catch (error) {
-    console.error('Login error:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -46,7 +53,6 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { RegisterUsername, RegisterPassword, role, RegisterEmail, fullname } = req.body;
-    console.log('Register data:', req.body);
 
     if (!RegisterUsername || !RegisterPassword || !fullname) {
       return res.status(400).json({ message: 'Username, password and fullname are required' });
@@ -57,18 +63,19 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'Username already registered. Please login.' });
     }
 
+    const hashedPassword = await bcrypt.hash(RegisterPassword,10)
+
     await User.create({
       username: RegisterUsername,
-      password: RegisterPassword,
+      password: hashedPassword,
       email: RegisterEmail || '',
       fullname: fullname,
       role: role || 'patient',
-      active: true 
-    });
+      active: true
+    })
 
     return res.status(201).json({ message: 'Registration successful' });
   } catch (error) {
-    console.error('Registration error:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -87,13 +94,16 @@ router.put('/update', Auth(), async (req, res) => {
     }
 
     if (NewUsername) user.username = NewUsername;
-    if (NewPassword) user.password = NewPassword;
-    
+    if (NewPassword) {
+
+      const hashedNewpassword = await bcrypt.hash(NewPassword,10)
+      user.password = hashedNewpassword
+    }
+
     await user.save();
 
     return res.status(200).json({ message: 'User information updated successfully' });
   } catch (error) {
-    console.error('Update error:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -122,13 +132,12 @@ function Auth() {
 }
 
 router.get('/protected', Auth(), (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Protected content',
     user: req.username,
     role: req.role
   });
 });
-
 
 router.Auth = Auth;
 module.exports = router;

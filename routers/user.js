@@ -1,20 +1,62 @@
 const express = require('express');
 const router = express.Router();
 const { User } = require('../dbHandler');
-const { Model } = require('sequelize');
+const bcrypt = require('bcrypt')
+const {Auth} =require('./auth')
 
-router.get('/users/all', (req, res) => {
+
+const isAdmin = (req, res, next) => {
+  if (req.user !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: Admin access required' });
+  }
+  next();
+}
+
+
+
+router.post('/register',Auth(), isAdmin, async(req,res)=>{
+  try{
+       const{RegisterUsername,RegisterPassword,RegisterEmail,fullname,role}=req.body
+
+       if(!RegisterUsername || !RegisterPassword){
+        return res.status(400).json({'message':'username or password require'})
+       }
+
+       const existinguser = await User.findOne({ where: { username: RegisterUsername } })
+
+       if(existinguser){
+
+        return res.status(409).json({'message':'user alreay exist'})
+       }
+
+      const hashedPassword = await bcrypt.hash(RegisterPassword,10)
+
+      await User.create({
+      username: RegisterUsername,
+      password: hashedPassword,
+      email: RegisterEmail || '',
+      fullname,
+      role: role || 'patient',
+      active: true
+      })
+  
+     return res.status(201).json({'message':'user created successfully'})
+      
+  }
+
+  catch(error){
+   
+    res.status(500).json({'message':'internal error',error:error.message})
+  }
+})
+
+
+router.get('/status', (req, res) => {
   res.json({ message: 'User route works!' });
 });
 
-const isAdmin = (req, res, next) => {
-  if (req.user?.role !== 'admin') {
-    return res.status(403).json({  message: 'Forbidden: Admin access required' });
-  }
-  next();
-};
 
-router.get('/all', isAdmin, async (req, res) => {
+router.get('/all', Auth(), isAdmin, async (req, res) => {
   try {
     const users = await User.findAll();
     res.json(users);
@@ -23,7 +65,8 @@ router.get('/all', isAdmin, async (req, res) => {
   }
 });
 
-router.get('/users/all', async (req, res) => {
+
+router.get('/admins', async (req, res) => {
   try {
     const admins = await User.findAll({ where: { role: 'admin' } });
     res.status(200).json(admins);
@@ -32,10 +75,11 @@ router.get('/users/all', async (req, res) => {
   }
 });
 
-router.post('/users/register-admin', async (req, res) => {
+
+router.post('/register-admin',Auth(), isAdmin, async (req, res) => {
   try {
-      const { 
-      fullname, 
+    const {
+      fullname,
       NewAdminName,
       email,
       NewAdminEmail,
@@ -50,76 +94,47 @@ router.post('/users/register-admin', async (req, res) => {
     const finalUsername = username || NewAdminUsername;
     const finalPassword = password || NewAdminPass;
 
-  if (!finalUsername || !finalPassword) {
+    if (!finalUsername || !finalPassword) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    const existing = await User.findOne({ where: { username: NewAdminUsername } });
+    const existing = await User.findOne({ where: { username: finalUsername } });
     if (existing) {
-      return res.status(409).json({ message: 'This Admin has already registered' });
+      return res.status(409).json({ message: 'This admin has already registered' });
     }
+
+     const hashedPassword = await bcrypt.hash(finalPassword, 10)
 
     await User.create({
       fullname: finalFullname,
       email: finalEmail,
-      username: NewAdminUsername,
-      password: NewAdminPass,  
-      role: 'admin',
-      active: true
-    });
-
-    res.status(201).json({ message: 'Registered Successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Error registering admin', error: err.message });
-  }
-});
-
-router.post('/register-admin', async (req, res) => {
-  try {
-        const { 
-      fullname = req.body.NewAdminName,
-      email = req.body.NewAdminEmail,
-      username = req.body.NewAdminUsername,
-      password = req.body.NewAdminPass
-    } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required' });
-    }
-
-    const existing = await User.findOne({where:{username}})
-    if (existing) {
-      return res.status(409).json({ message: 'This Admin has already registered' });
-    }
-
-    await User.create({
-      fullname,
-      email,
-      username,
-      password,
+      username: finalUsername,
+      password: hashedPassword ,
       role: 'admin',
       active: true
     });
 
     res.status(201).json({ message: 'Admin registered successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Error registering user', error: err.message });
+    res.status(500).json({ message: 'Error registering admin', error: err.message });
   }
 });
+
 
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const oneUser = await User.findByPk(id); 
-    
-    if (!oneUser) {
+    const user = await User.findByPk(id);
+
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    await oneUser.destroy();
-    return res.status(204).json();
+    await user.destroy();
+    res.status(204).json();
   } catch (err) {
     res.status(500).json({ message: 'Error deleting user', error: err.message });
   }
 });
-module.exports = router
+
+module.exports = router;

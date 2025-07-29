@@ -11,7 +11,7 @@ app.use('/auth', authRouter);
 
 beforeAll(async () => {
   try {
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ alter: true });
   } catch (error) {
     console.error('Database sync failed:', error);
     process.exit(1);
