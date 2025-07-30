@@ -6,10 +6,12 @@ const {Auth} =require('./auth')
 
 
 const isAdmin = (req, res, next) => {
-  if (req.user !== 'admin') {
-    return res.status(403).json({ message: 'Forbidden: Admin access required' });
+  if (req.user && req.user.role == 'admin') {
+    return  next()
   }
-  next();
+
+  return res.status(403).json({'message':'Access denied, only admin'})
+ 
 }
 
 

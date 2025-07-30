@@ -4,6 +4,7 @@ const db = require('./dbHandler');
 const sequelize = db.dbHandler;
 const { User } = db;
 
+
 const app = express();
 app.use(express.json());
 const userRouter = require('./routers/user');

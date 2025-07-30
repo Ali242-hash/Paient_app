@@ -2,17 +2,22 @@ const express = require('express');
 const supertest = require('supertest');
 const db = require('./dbHandler');
 const sequelize = db.dbHandler;
-const { User, DoctorProfile, Shift, Timeslot } = db;
+const { User, DoctorProfile, Shift, Timeslot } = db
+
 
 const app = express();
 app.use(express.json());
 const shiftRouter = require('./routers/Shift');
 app.use('/shifts', shiftRouter);
 
+
 beforeAll(async () => {
   try {
-
-    await sequelize.sync({ force: true });
+    if (process.env.NODE_ENV === 'test') {
+      await sequelize.sync({ force: true })
+    } else {
+      await sequelize.sync(); 
+    }
   } catch (error) {
     console.error('Database sync failed:', error);
     process.exit(1);
@@ -25,17 +30,17 @@ describe('Shift Routes', () => {
 
   beforeAll(async () => {
     try {
-   
+      // Unique username/email for safety (can run multiple times)
+      const unique = Date.now();
       testUser = await User.create({
         fullname: 'Test Doctor',
-        email: 'testdoctor@example.com',
-        username: 'testdoctor',
+        email: `testdoctor_${unique}@example.com`,
+        username: `testdoctor_${unique}`,
         password: 'password123',
         role: 'doctor',
         active: true
       });
 
-    
       testDoctorProfile = await DoctorProfile.create({
         userId: testUser.id,
         Docname: 'Dr. Test',
@@ -61,14 +66,12 @@ describe('Shift Routes', () => {
   });
 
   test('should return 409 if shift already exists', async () => {
-  
     await Shift.create({
       doctorId: testDoctorProfile.id,
       dátum: '2025-01-01',
       típus: 'délelőtt',
       active: true
     });
-
 
     const response = await supertest(app)
       .post('/shifts')

@@ -3,6 +3,13 @@ const supertest = require('supertest');
 const db = require('./dbHandler');
 const sequelize = db.dbHandler;
 const { User, DoctorProfile, Shift, Timeslot, Appointment } = db;
+const bcrypt = require('bcrypt')
+
+if (process.env.NODE_ENV === 'test') {
+  console.log = () => {};
+  console.error = () => {};
+  console.warn = () => {};
+}
 
 const app = express();
 app.use(express.json());
@@ -24,11 +31,12 @@ describe('POST /appointments', () => {
   let testTimeslot;
 
   beforeAll(async () => {
+    const hashedPassword = await bcrypt.hash('password123',10)
     const user = await User.create({
       fullname: 'Test Doctor',
       email: 'doctor@test.com',
       username: 'testdoctor',
-      password: 'password123',
+      password: hashedPassword,
       role: 'doctor',
       active: true
     });
@@ -71,7 +79,9 @@ describe('POST /appointments', () => {
       .post('/appointments')
       .send({
         timeslotId: testTimeslot.id,
-        name: 'New Patient'  
+        név: 'New Patient', 
+        doctorId:testDoctor.id,
+        megjegyzés: 'Test note' 
       });
 
     expect(response.status).toBe(409);
@@ -90,8 +100,9 @@ describe('POST /appointments', () => {
       .post('/appointments')
       .send({
         timeslotId: newTimeslot.id,
-        name: 'New Patient',  
-        note: 'Test note'     
+          név: 'New Patient',
+       doctorId: testDoctor.id,
+       megjegyzés: 'Test note'     
       });
 
     expect(response.status).toBe(201);

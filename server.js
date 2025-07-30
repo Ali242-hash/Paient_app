@@ -22,7 +22,7 @@ const userRouters = require('./routers/user');
 const RouterAppointment = require('./routers/appointment');
 const DoctorProRoute = require('./routers/Doctorprofile');
 const Shiftrouter = require('./routers/Shift');
-const authRouter = require('./routers/auth');
+const { authRouter, Auth } = require('./routers/auth')
 
 
 server.use(express.json());
