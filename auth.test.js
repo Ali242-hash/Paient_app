@@ -3,18 +3,23 @@ const supertest = require('supertest');
 const db = require('./dbHandler');
 const sequelize = db.dbHandler;
 const { User } = db;
+const bcrypt = require('bcrypt');
+
+
+require('dotenv').config({ path: '.env.test' })
 
 const app = express();
-app.use(express.json());
+app.use(express.json())
+
 const authRouter = require('./routers/auth');
 app.use('/auth', authRouter);
 
 beforeAll(async () => {
   try {
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ alter: true });
   } catch (error) {
     console.error('Database sync failed:', error);
-    process.exit(1);
+    
   }
 });
 
@@ -24,11 +29,14 @@ describe('Auth Routes', () => {
 
   beforeAll(async () => {
     
+    await User.destroy({ where: { username: 'testuser' } });
+
+    const hashedPassword = await bcrypt.hash('password123', 10);
     testUser = await User.create({
       fullname: 'Test User',
       email: 'test@user.com',
       username: 'testuser',
-      password: '$2a$10$hashedpasswordplaceholder', 
+      password: hashedPassword,
       role: 'patient',
       active: true
     });
@@ -38,19 +46,17 @@ describe('Auth Routes', () => {
     test('should return 400 for missing credentials', async () => {
       const response = await supertest(app)
         .post('/auth/login')
-        .send({ username: '', password: '' });
-      
+     
+        .send({ loginUsername: '', loginPassword: '' });
+
       expect(response.status).toBe(400);
     });
 
     test('should return 200 with token for valid credentials', async () => {
       const response = await supertest(app)
         .post('/auth/login')
-        .send({ 
-          username: 'testuser', 
-          password: 'password123'
-        });
-      
+        .send({ loginUsername: 'testuser', loginPassword: 'password123' });
+
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('token');
       authToken = response.body.token;
@@ -58,16 +64,24 @@ describe('Auth Routes', () => {
   });
 
   describe('PUT /auth/update', () => {
-    test('should return 200 when credentials are updated', async () => {
+    test('should return 400 if no new username or password', async () => {
+      const response = await supertest(app)
+        .put('/auth/update')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({})
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should return 200 when username or password updated', async () => {
       const response = await supertest(app)
         .put('/auth/update')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          currentPassword: 'password123',
-          newPassword: 'newpassword123',
-          confirmNewPassword: 'newpassword123'
+          NewUsername: 'newtestuser',
+          NewPassword: 'newpassword123'
         });
-      
+
       expect(response.status).toBe(200);
     });
   });
@@ -75,14 +89,17 @@ describe('Auth Routes', () => {
   describe('Auth Middleware', () => {
     test('should return 401 for invalid token', async () => {
       const response = await supertest(app)
-        .get('/auth/me') 
-        .set('Authorization', 'Bearer invalidtoken');
-      
+        .put('/auth/update')
+        .set('Authorization', 'Bearer invalidtoken')
+        .send({
+          NewUsername: 'whatever'
+        });
+
       expect(response.status).toBe(401);
     });
   });
 });
 
-afterAll(async () => { 
+afterAll(async () => {
   await sequelize.close();
 });

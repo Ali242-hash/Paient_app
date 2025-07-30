@@ -33,8 +33,8 @@ router.post('/', async (req, res) => {
     const newShift = await Shift.create({ doctorId, dátum, típus });
     const shiftId = newShift.id;
 
-    const startHour = típus === 'délelőtt' ? 9 : 13;
-    const endHour = típus === 'délelőtt' ? 12 : 17;
+    const startHour = típus === 'délelőtt' ? 9 : 13
+    const endHour = típus === 'délután' ? 13: 18
     const slots = [];
 
     for (let hour = startHour; hour < endHour; hour++) {
