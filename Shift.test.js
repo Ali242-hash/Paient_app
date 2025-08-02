@@ -30,7 +30,7 @@ describe('Shift Routes', () => {
 
   beforeAll(async () => {
     try {
-      // Unique username/email for safety (can run multiple times)
+      
       const unique = Date.now();
       testUser = await User.create({
         fullname: 'Test Doctor',

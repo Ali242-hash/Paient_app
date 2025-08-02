@@ -5,11 +5,6 @@ const sequelize = db.dbHandler;
 const { User, DoctorProfile, Shift, Timeslot, Appointment } = db;
 const bcrypt = require('bcrypt')
 
-if (process.env.NODE_ENV === 'test') {
-  console.log = () => {};
-  console.error = () => {};
-  console.warn = () => {};
-}
 
 const app = express();
 app.use(express.json());

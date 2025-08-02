@@ -18,7 +18,7 @@ beforeAll(async () => {
     console.log('Database connected and synced');
   } catch (error) {
     console.error('Database connection failed:', error);
-    process.exit(1);
+    
   }
 });
 

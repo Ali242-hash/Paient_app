@@ -28,12 +28,21 @@ const { authRouter, Auth } = require('./routers/auth')
 server.use(express.json());
 server.use(cors());
 
+server.use((req,res,next)=>{
+
+  console.log(`Incomng ${req.method} request to ${req.url}`)
+  next()
+
+})
+
 
 server.use('/users', userRouters);
 server.use('/appointments', RouterAppointment);
 server.use('/doctorProfiles', DoctorProRoute);
 server.use('/auth', authRouter);
 server.use('/shifts', Shiftrouter);
+
+
 
 
 const PORT = process.env.PORT || 3000;

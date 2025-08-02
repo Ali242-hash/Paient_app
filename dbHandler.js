@@ -2,7 +2,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
 const dbHandler = new Sequelize('patientproject', 'root', '', {
-  host: '127.0.0.1',  
+   host:'127.0.0.1',
   dialect: 'mysql',
    logging: process.env.NODE_ENV === 'test' ? false : console.log,
 });
