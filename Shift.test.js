@@ -1,107 +1,89 @@
-const express = require('express');
-const supertest = require('supertest');
-const db = require('./dbHandler');
-const sequelize = db.dbHandler;
-const { User, DoctorProfile, Shift, Timeslot } = db
-
-
-const app = express();
-app.use(express.json());
+const express = require('express')
+const request = require('supertest')
+const db = require('./dbHandler')
+const { User, DoctorProfile, Shift, Timeslot } = db;
 const shiftRouter = require('./routers/Shift');
-app.use('/shifts', shiftRouter);
-
-
-beforeAll(async () => {
-  try {
-    if (process.env.NODE_ENV === 'test') {
-      await sequelize.sync({ force: true })
-    } else {
-      await sequelize.sync(); 
-    }
-  } catch (error) {
-    console.error('Database sync failed:', error);
-    process.exit(1);
-  }
-});
+const { where } = require('sequelize');
 
 describe('Shift Routes', () => {
-  let testUser;
-  let testDoctorProfile;
-
-  beforeAll(async () => {
-    try {
-      
-      const unique = Date.now();
-      testUser = await User.create({
-        fullname: 'Test Doctor',
-        email: `testdoctor_${unique}@example.com`,
-        username: `testdoctor_${unique}`,
-        password: 'password123',
-        role: 'doctor',
-        active: true
-      });
-
-      testDoctorProfile = await DoctorProfile.create({
-        userId: testUser.id,
-        Docname: 'Dr. Test',
-        specialty: 'General',
-        treatments: 'General',
-        profilKész: true
-      });
-    } catch (error) {
-      console.error('Setup failed:', error);
-      throw error;
-    }
-  });
-
-  afterAll(async () => {
-    try {
-      await Timeslot.destroy({ where: {}, force: true });
-      await Shift.destroy({ where: {}, force: true });
-      await DoctorProfile.destroy({ where: {}, force: true });
-      await User.destroy({ where: {}, force: true });
-    } catch (error) {
-      console.error('Cleanup failed:', error);
-    }
-  });
+  const server = express();
+  server.use(express.json());
+  server.use('/shifts', shiftRouter);
 
   test('should return 409 if shift already exists', async () => {
+    const testUser = await User.create({
+      fullname: 'Test Doctor',
+      email: 'doctor409@example.com',
+      username: 'doctor409',
+      password: 'password123',
+      role: 'doctor',
+      active: true,
+    });
+
+    const testDoctorProfile = await DoctorProfile.create({
+      userId: testUser.id,
+      Docname: 'Dr. Conflict',
+      specialty: 'General',
+      treatments: 'General',
+      profilKész: true,
+    });
+
     await Shift.create({
       doctorId: testDoctorProfile.id,
       dátum: '2025-01-01',
       típus: 'délelőtt',
-      active: true
+      active: true,
     });
 
-    const response = await supertest(app)
+    const response = await request(server)
       .post('/shifts')
       .send({
         doctorId: testDoctorProfile.id,
         dátum: '2025-01-01',
-        típus: 'délelőtt'
+        típus: 'délelőtt',
       });
 
     expect(response.status).toBe(409);
+
+    await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
+    await DoctorProfile.destroy({ where: { userId: testUser.id } });
+    await User.destroy({ where: { id: testUser.id } });
   });
 
-  test('should return 201 and create shift with time slots', async () => {
-    const response = await supertest(app)
+  test('should return 201 and create shift with timeslots', async () => {
+     await db.dbHandler.sync({ force: true })
+    const testUser = await User.create({
+      fullname: 'Test Doctor',
+      email: 'doctor201@example.com',
+      username: 'doctor201',
+      password: 'password123',
+      role: 'doctor',
+      active: true,
+    });
+
+    const testDoctorProfile = await DoctorProfile.create({
+      userId: testUser.id,
+      Docname: 'Dr. 201',
+      specialty: 'General',
+      treatments: 'General',
+      profilKész: true,
+    });
+
+    const response = await request(server)
       .post('/shifts')
       .send({
         doctorId: testDoctorProfile.id,
-        dátum: '2023-01-02',
+        dátum: '2025-01-02',
         típus: 'délután',
-        active: true,
-        timeSlots: [
-          { kezdes: '14:00', veg: '14:30' },
-          { kezdes: '14:30', veg: '15:00' }
-        ]
       });
 
-    expect(response.status).toBe(201);
-  });
-});
+ expect(response.status).toBe(201);
+expect(response.body).toHaveProperty('shift');
+expect(response.body).toHaveProperty('timeslots');
 
-afterAll(async () => {
-  await sequelize.close();
+await Timeslot.destroy({ where: {} });
+await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
+await DoctorProfile.destroy({ where: { userId: testUser.id } });
+await User.destroy({ where: { id: testUser.id } });
+  });
 });

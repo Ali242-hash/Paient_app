@@ -5,14 +5,13 @@ const { Shift, Timeslot } = require('../dbHandler');
 router.get('/:doctorId/timeslots', async (req, res) => {
   try {
     const timeslots = await Timeslot.findAll({
-      where: { doctorId: req.params.doctorId, foglalt: false }, 
-      order: [['kezdes', 'ASC']]
-    })
+      where: { doctorId: req.params.doctorId, foglalt: false }
+    });
     res.json(timeslots);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching timeslots', error: error.message });
   }
-})
+});
 
 router.post('/', async (req, res) => {
   const { doctorId, dátum, típus } = req.body;
@@ -31,10 +30,9 @@ router.post('/', async (req, res) => {
     }
 
     const newShift = await Shift.create({ doctorId, dátum, típus });
-    const shiftId = newShift.id;
 
-    const startHour = típus === 'délelőtt' ? 9 : 13
-    const endHour = típus === 'délután' ? 13: 18
+    const startHour = típus === 'délelőtt' ? 9 : 13;
+    const endHour = típus === 'délután' ? 13 : 18;
     const slots = [];
 
     for (let hour = startHour; hour < endHour; hour++) {
@@ -46,11 +44,11 @@ router.post('/', async (req, res) => {
 
         const timeslot = await Timeslot.create({
           doctorId,
-          shiftId,
+          shiftId: newShift.id,
           dátum,
           típus,
-          kezdes, 
-          veg,  
+          kezdes,
+          veg,
           foglalt: false
         });
 
@@ -58,15 +56,11 @@ router.post('/', async (req, res) => {
       }
     }
 
-    res.status(201).json({ 
-      shift: newShift,
-      timeslots: slots 
-    });
+    res.status(201).json({ shift: newShift, timeslots: slots });
   } catch (error) {
-    console.error('Shift creation failed:', error);
-    res.status(500).json({ 
-      message: 'Shift not created', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Shift not created',
+      error: error.message
     });
   }
 });

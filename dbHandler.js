@@ -1,13 +1,12 @@
-
 const { Sequelize, DataTypes } = require('sequelize');
 
 const dbHandler = new Sequelize('patientproject', 'root', '', {
-   host:'127.0.0.1',
+  host: 'localhost',
   dialect: 'mysql',
-   logging: process.env.NODE_ENV === 'test' ? false : console.log,
-});
+  logging: process.env.NODE_ENV === 'test' ? false : console.log,
+})
 
-const user = dbHandler.define('User', {
+const User = dbHandler.define('User', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   fullname: { type: DataTypes.STRING, allowNull: false },
   email: { type: DataTypes.STRING, allowNull: false, validate: { isEmail: true } },
@@ -15,9 +14,12 @@ const user = dbHandler.define('User', {
   password: { type: DataTypes.STRING, allowNull: false },
   role: { type: DataTypes.ENUM('patient', 'doctor', 'admin'), allowNull: false, defaultValue: 'patient' },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
+}, {
+  tableName: 'users',
+  freezeTableName: true,
 });
 
-const doctorProfile = dbHandler.define('DoctorProfile', {
+const DoctorProfile = dbHandler.define('DoctorProfile', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   userId: { type: DataTypes.INTEGER, allowNull: false },
   Docname: { type: DataTypes.STRING, allowNull: false },
@@ -26,75 +28,70 @@ const doctorProfile = dbHandler.define('DoctorProfile', {
   specialty: { type: DataTypes.STRING, allowNull: false },
   treatments: { type: DataTypes.STRING, allowNull: false },
   profilKész: { type: DataTypes.BOOLEAN, defaultValue: false },
+}, {
+  tableName: 'doctorprofiles',
+  freezeTableName: true,
 });
 
-
-const shift = dbHandler.define('Shift', {
+const Shift = dbHandler.define('Shift', {
   id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
   doctorId: { type: DataTypes.INTEGER, allowNull: false },
   dátum: { type: DataTypes.DATEONLY, allowNull: false },
   típus: { type: DataTypes.ENUM('délelőtt', 'délután'), allowNull: false },
   active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+}, {
+  tableName: 'shifts',
+  freezeTableName: true,
 });
 
-const timeslot = dbHandler.define('Timeslot', {
+const Timeslot = dbHandler.define('Timeslot', {
   id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
   shiftId: { type: DataTypes.INTEGER, allowNull: false },
   kezdes: { type: DataTypes.STRING, allowNull: false },
   veg: { type: DataTypes.STRING, allowNull: false },
   foglalt: { type: DataTypes.BOOLEAN, defaultValue: false },
+}, {
+  tableName: 'timeslots',
+  freezeTableName: true,
 });
 
-const appointment = dbHandler.define('Appointment', {
+const Appointment = dbHandler.define('Appointment', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   timeslotId: { type: DataTypes.INTEGER, allowNull: false },
   páciensId: { type: DataTypes.INTEGER, allowNull: true },
   név: { type: DataTypes.STRING, allowNull: false },
   megjegyzés: { type: DataTypes.TEXT },
   létrehozásDátuma: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+}, {
+  tableName: 'appointments',
+  freezeTableName: true,
 });
 
-const specialization = dbHandler.define('Specialization', {
+const Specialization = dbHandler.define('Specialization', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
   név: { type: DataTypes.STRING, allowNull: false },
+}, {
+  tableName: 'specializations',
+  freezeTableName: true,
 });
 
-const treatment = dbHandler.define('Treatment', {
+const Treatment = dbHandler.define('Treatment', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
   doctorId: { type: DataTypes.INTEGER, allowNull: false },
   név: { type: DataTypes.STRING, allowNull: false },
+}, {
+  tableName: 'treatments',
+  freezeTableName: true,
 });
-
-
-user.hasOne(doctorProfile, { foreignKey: 'userId' })
-user.hasMany(appointment, { foreignKey: 'páciensId' })
-
-doctorProfile.belongsTo(user, { foreignKey: 'userId' })
-doctorProfile.hasMany(timeslot, { foreignKey: 'doctorId' })
-doctorProfile.hasMany(shift, { foreignKey: 'doctorId' });
-doctorProfile.hasMany(treatment, { foreignKey: 'doctorId' })
-
-timeslot.belongsTo(doctorProfile, { foreignKey: 'doctorId' })
-timeslot.belongsTo(shift, { foreignKey: 'shiftId' });
-timeslot.hasOne(appointment, { foreignKey: 'timeslotId' })
-
-shift.belongsTo(doctorProfile, { foreignKey: 'doctorId' });
-shift.hasMany(timeslot, { foreignKey: 'shiftId' });
-
-appointment.belongsTo(timeslot, { foreignKey: 'timeslotId' })
-appointment.belongsTo(user, { foreignKey: 'páciensId' })
-
-treatment.belongsTo(doctorProfile, { foreignKey: 'doctorId' })
-
 
 
 module.exports = {
   dbHandler,
-  User: user,
-  DoctorProfile: doctorProfile,
-  Shift: shift,
-  Timeslot: timeslot,
-  Appointment: appointment,
-  Specialization: specialization,
-  Treatment: treatment
+  User,
+  DoctorProfile,
+  Shift,
+  Timeslot,
+  Appointment,
+  Specialization,
+  Treatment,
 }

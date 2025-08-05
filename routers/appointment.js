@@ -1,7 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const { Appointment, Timeslot, DoctorProfile } = require('../dbHandler');
-
+const express = require('express')
+const router = express.Router()
+const { Appointment, Timeslot, DoctorProfile } = require('../dbHandler')
 
 router.get('/free/:doctorId', async (req, res) => {
   try {
@@ -18,10 +17,10 @@ router.get('/free/:doctorId', async (req, res) => {
       attributes: ['id', 'kezdes', 'veg', 'foglalt']
     });
 
-    res.status(200).json(freeSlots);
+    return res.status(200).json(freeSlots);
   } catch (error) {
     console.error('Error fetching free slots:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -76,7 +75,7 @@ router.delete('/:id', async (req, res) => {
     });
 
     if (!appointment) {
-      return res.status(404).json({ message: 'No appointment has been found' });
+      return res.status(404).json({ message: 'No appointment has been found' })
     }
 
     await Timeslot.update(
@@ -89,9 +88,9 @@ router.delete('/:id', async (req, res) => {
       message: 'Appointment deleted successfully' 
     });
   } catch (error) {
-    console.error('Error deleting appointment:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Error deleting appointment:', error)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 });
 
-module.exports = router;
+module.exports = router
