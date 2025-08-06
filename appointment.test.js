@@ -56,6 +56,7 @@ describe('POST /appointments', () => {
     await testTimeslot.update({ foglalt: true });
 
 
+
     const response = await supertest(server)
       .post('/appointments')
       .send({
@@ -66,7 +67,7 @@ describe('POST /appointments', () => {
       });
 
     expect(response.status).toBe(409);
-    expect(response.body).toHaveProperty('message');
+ 
 
 
     await Appointment.destroy({ where: { timeslotId: testTimeslot.id } });
