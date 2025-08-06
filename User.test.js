@@ -28,7 +28,7 @@ test('POST /users/ should return returns 400', async () => {
     .send({})
 
   expect(res.statusCode).toBe(400);
-  expect(res.body).toHaveProperty('message');
+  expect(res.body).toHaveProperty('message')
 });
 
 

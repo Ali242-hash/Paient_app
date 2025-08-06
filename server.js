@@ -13,15 +13,29 @@ const userRouters = require('./routers/user');
 const RouterAppointment = require('./routers/appointment');
 const DoctorProRoute = require('./routers/Doctorprofile');
 const Shiftrouter = require('./routers/Shift');
-const { router: authRouter, Auth } = require('./routers/auth')
+const { router: authRouter} = require('./routers/auth')
 
-
+const {
+  User,
+  Appointment,
+  Specialization,
+  Shift,
+  DoctorProfile,
+  Treatment,
+  Timeslot
+} = db
 
 
 server.use(express.json());
 server.use(cors());
 
-
+User.sync({alter:true})
+Appointment.sync({alter:true})
+Specialization.sync({alter:true})
+Shift.sync({alter:true})
+DoctorProfile.sync({alter:true})
+Treatment.sync({alter:true})
+Timeslot.sync({alter:true})
 
 
 server.use('/users', userRouters);
