@@ -1,4 +1,4 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const { Sequelize, DataTypes } = require('sequelize')
 
 const dbHandler = new Sequelize('patientproject', 'root', '', {
   host: 'localhost',
@@ -6,7 +6,7 @@ const dbHandler = new Sequelize('patientproject', 'root', '', {
   logging: process.env.NODE_ENV === 'test' ? false : console.log,
 })
 
-const User = dbHandler.define('User', {
+module.exports.User = dbHandler.define('users', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   fullname: { type: DataTypes.STRING, allowNull: false },
   email: { type: DataTypes.STRING, allowNull: false, validate: { isEmail: true } },
@@ -14,12 +14,9 @@ const User = dbHandler.define('User', {
   password: { type: DataTypes.STRING, allowNull: false },
   role: { type: DataTypes.ENUM('patient', 'doctor', 'admin'), allowNull: false, defaultValue: 'patient' },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
-}, {
-  tableName: 'users',
-  freezeTableName: true,
-});
+})
 
-const DoctorProfile = dbHandler.define('DoctorProfile', {
+module.exports.DoctorProfile = dbHandler.define('doctorprofiles', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   userId: { type: DataTypes.INTEGER, allowNull: false },
   Docname: { type: DataTypes.STRING, allowNull: false },
@@ -28,70 +25,42 @@ const DoctorProfile = dbHandler.define('DoctorProfile', {
   specialty: { type: DataTypes.STRING, allowNull: false },
   treatments: { type: DataTypes.STRING, allowNull: false },
   profilKész: { type: DataTypes.BOOLEAN, defaultValue: false },
-}, {
-  tableName: 'doctorprofiles',
-  freezeTableName: true,
-});
+})
 
-const Shift = dbHandler.define('Shift', {
+module.exports.Shift = dbHandler.define('shifts', {
   id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
   doctorId: { type: DataTypes.INTEGER, allowNull: false },
   dátum: { type: DataTypes.DATEONLY, allowNull: false },
   típus: { type: DataTypes.ENUM('délelőtt', 'délután'), allowNull: false },
   active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-}, {
-  tableName: 'shifts',
-  freezeTableName: true,
-});
+})
 
-const Timeslot = dbHandler.define('Timeslot', {
+module.exports.Timeslot = dbHandler.define('timeslots', {
   id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
   shiftId: { type: DataTypes.INTEGER, allowNull: false },
   kezdes: { type: DataTypes.STRING, allowNull: false },
   veg: { type: DataTypes.STRING, allowNull: false },
   foglalt: { type: DataTypes.BOOLEAN, defaultValue: false },
-}, {
-  tableName: 'timeslots',
-  freezeTableName: true,
-});
+})
 
-const Appointment = dbHandler.define('Appointment', {
+module.exports.Appointment = dbHandler.define('appointments', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
   timeslotId: { type: DataTypes.INTEGER, allowNull: false },
   páciensId: { type: DataTypes.INTEGER, allowNull: true },
   név: { type: DataTypes.STRING, allowNull: false },
   megjegyzés: { type: DataTypes.TEXT },
   létrehozásDátuma: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-}, {
-  tableName: 'appointments',
-  freezeTableName: true,
-});
+})
 
-const Specialization = dbHandler.define('Specialization', {
+module.exports.Specialization = dbHandler.define('specializations', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
   név: { type: DataTypes.STRING, allowNull: false },
-}, {
-  tableName: 'specializations',
-  freezeTableName: true,
-});
+})
 
-const Treatment = dbHandler.define('Treatment', {
+module.exports.Treatment = dbHandler.define('treatments', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
   doctorId: { type: DataTypes.INTEGER, allowNull: false },
   név: { type: DataTypes.STRING, allowNull: false },
-}, {
-  tableName: 'treatments',
-  freezeTableName: true,
-});
+})
 
-
-module.exports = {
-  dbHandler,
-  User,
-  DoctorProfile,
-  Shift,
-  Timeslot,
-  Appointment,
-  Specialization,
-  Treatment,
-}
+module.exports.dbHandler = dbHandler

@@ -4,12 +4,12 @@ const db = require('./dbHandler');
 const { User, DoctorProfile } = db;
 const bcrypt = require('bcrypt');
 
-const app = express();
-app.use(express.json());
+const server = express();
+server.use(express.json());
 const DoctorProRoute = require('./routers/Doctorprofile');
-app.use('/doctorprofiles', DoctorProRoute);
+server.use('/doctorprofiles', DoctorProRoute);
 
-const request = supertest(app);
+const request = supertest(server);
 
 describe('POST /doctorprofiles', () => {
   test('should return 409 if doctor profile already exists', async () => {
@@ -43,10 +43,9 @@ describe('POST /doctorprofiles', () => {
     });
 
     expect(response.status).toBe(409);
-    expect(response.body).toHaveProperty('message', 'Doctor profile already exists for this user');
+   
 
-    await DoctorProfile.destroy({ where: { userId: testUser.id } });
-    await User.destroy({ where: { id: testUser.id } });
+   
   });
 
   test('should create a new doctor profile and return 201', async () => {

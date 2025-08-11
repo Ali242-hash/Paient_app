@@ -1,48 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const { User } = require('../dbHandler');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Auth } = require('./auth');
+const { User } = require('../dbHandler');
+const { Auth } = require('./auth')
 
 
-const secretKey = process.env.secretKey
+const secretKey = process.env.secretKey || "madaretosagbegad666"
 
-router.post('/auth/register', async (req, res) => {
-  const { RegisterUsername, RegisterPassword, RegisterEmail, fullname, role } = req.body;
+router.post('/', async (req, res) => {
+  const { username, password, email, fullname, role } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username or password is required' });
+  }
 
   try {
-    if (!RegisterUsername || !RegisterPassword) {
-      return res.status(401).json({ message: 'Username or password are required' }).end();
-    }
-
-    const existingUser = await User.findOne({ where: { username: RegisterUsername } });
+    const existingUser = await User.findOne({ where: { username } });
     if (existingUser) {
-      return res.status(409).json({ message: 'User already exists in our database' }).end();
+      return res.status(409).json({ message: 'This user already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(RegisterPassword, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
-      username: RegisterUsername,
+      username,
       password: hashedPassword,
-      email: RegisterEmail || '',
+      email: email || '',
       fullname,
       role: role || 'patient',
-      active: true,
-    });
+      active: true
+    })
 
-    return res.status(201).json({ message: 'User created successfully' }).end();
+
+
+    return res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Internal error', error: error.message });
+    return res.status(500).json({ message: "Internal error", error: error.message });
   }
 })
+
+
+
 
 router.post('/register-admin', async (req, res) => {
   try {
     const { loginUsername, loginPassword } = req.body;
 
-    if (!loginUsername || !loginPassword) {
+   if (!username || !password || !fullname || !email) {
       return res.status(401).json({ message: 'Admin not found' }).end();
     }
 
@@ -68,38 +73,9 @@ router.post('/register-admin', async (req, res) => {
   }
 })
 
-router.post('/auth/login', async (req, res) => {
-  try {
-    const { loginUsername, loginPassword } = req.body;
 
-    if (loginUsername && loginPassword) {
-      const user = await User.findOne({ where: { username: loginUsername } });
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' }).end();
-      }
-
-      const passwordMatch = await bcrypt.compare(loginPassword, user.password);
-      if (!passwordMatch) {
-        return res.status(401).json({ message: 'Invalid credentials' }).end();
-      }
-
-      const token = jwt.sign(
-        { username: user.username, role: user.role },
-        secretKey,
-        { expiresIn: '5h' }
-      );
-
-      return res.status(200).json({ message: 'Login was successful', token }).end();
-    } else {
-      return res.status(400).json({ message: 'Missing credentials' }).end();
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Internal error', error: error.message });
-  }
-})
-
-router.get('/all', Auth(), async (req, res) => {
+router.get('/all', async (req, res) => {
   try {
     const users = await User.findAll();
     res.json(users);

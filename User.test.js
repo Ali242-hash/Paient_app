@@ -1,5 +1,6 @@
 const express = require('express');
 const request = require('supertest');
+const jwt = require('jsonwebtoken');
 const userRouter = require('./routers/user');
 
 const server = express();
@@ -12,26 +13,23 @@ describe('User Routes', () => {
     expect(res.statusCode).toBe(401);
   });
 
-test('POST /users/ should return returns 400', async () => {
-  const jwt = require('jsonwebtoken');
-  const secretKey = 'madaretosagbegad666';
+  test('POST /users/ should return 400', async () => {
+    const secretKey = 'madaretosagbegad666';
 
-  const token = jwt.sign(
-    { id: 1, username: 'adminUser', role: 'admin' },
-    secretKey,
-    { expiresIn: '1h' }
-  );
+    const token = jwt.sign(
+      { id: 1, username: 'adminUser', role: 'admin' },
+      secretKey,
+      { expiresIn: '1h' }
+    );
 
-  const res = await request(server)
-    .post('/users/register-admin')
-    .set('Authorization', `Bearer ${token}`)
-    .send({})
+    const res = await request(server)
+      .post('/users/register-admin')
+      .set('Authorization', `Bearer ${token}`)
+      .send({});
 
-  expect(res.statusCode).toBe(400);
-  expect(res.body).toHaveProperty('message')
-});
-
-
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty('message');
+  });
 
   test('POST /users/register-admin unauthorized returns 401', async () => {
     const res = await request(server).post('/users/register-admin').send({
@@ -40,13 +38,15 @@ test('POST /users/ should return returns 400', async () => {
       username: 'marksmith',
       password: 'password123',
     });
+
     expect(res.statusCode).toBe(401);
-    expect(res.body).toHaveProperty('message')
+    expect(res.body).toHaveProperty('message');
   });
 
   test('DELETE /users/:id unauthorized returns 401', async () => {
-    const res = await request(server).delete('/users/1')
+    const res = await request(server).delete('/users/1');
+
     expect(res.statusCode).toBe(401);
-    expect(res.body).toHaveProperty('message')
-  })
-})
+    expect(res.body).toHaveProperty('message');
+  });
+});

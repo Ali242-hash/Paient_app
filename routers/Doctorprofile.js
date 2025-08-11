@@ -1,17 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { DoctorProfile, User } = require('../dbHandler');
+const { Auth } = require('./auth')
 
 router.get('/', async (req, res) => {
   try {
-    const profiles = await DoctorProfile.findAll({
-      include: [{ model: User }]
-    });
+    const profiles = await DoctorProfile.findAll();
     res.status(200).json(profiles);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Failed to fetch doctor profiles' });
   }
-})
+});
+
 
 router.post('/', async (req, res) => {
   const { userId, Docname, description, profilKépUrl, specialty, treatments } = req.body;
@@ -34,4 +35,4 @@ router.post('/', async (req, res) => {
   res.status(201).json(newDoctor);
 });
 
-module.exports = router;
+module.exports = router
