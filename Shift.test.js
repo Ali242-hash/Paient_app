@@ -1,16 +1,16 @@
-const express = require('express')
-const request = require('supertest')
-const db = require('./dbHandler')
+const express = require('express');
+const request = require('supertest');
+const db = require('./dbHandler');
 const { User, DoctorProfile, Shift, Timeslot } = db;
 const shiftRouter = require('./routers/Shift');
-const { where } = require('sequelize');
+const server = express();
+server.use(express.json());
+server.use('/shifts', shiftRouter)
 
 describe('Shift Routes', () => {
-  const server = express();
-  server.use(express.json());
-  server.use('/shifts', shiftRouter);
 
   test('should return 409 if shift already exists', async () => {
+    
     const testUser = await User.create({
       fullname: 'Test Doctor',
       email: 'doctor409@example.com',
@@ -35,23 +35,26 @@ describe('Shift Routes', () => {
       active: true,
     });
 
-    const response = await request(server)
-      .post('/shifts')
-      .send({
-        doctorId: testDoctorProfile.id,
-        dátum: '2025-01-01',
-        típus: 'délelőtt',
-      });
+    try {
+      const response = await request(server)
+        .post('/shifts')
+        .send({
+          doctorId: testDoctorProfile.id,
+          dátum: '2025-01-01',
+          típus: 'délelőtt',
+        });
 
-    expect(response.status).toBe(409);
-
-    await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
-    await DoctorProfile.destroy({ where: { userId: testUser.id } });
-    await User.destroy({ where: { id: testUser.id } });
+      expect(response.status).toBe(409);
+    } finally {
+      await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
+      await DoctorProfile.destroy({ where: { userId: testUser.id } });
+      await User.destroy({ where: { id: testUser.id } });
+    }
   });
 
   test('should return 201 and create shift with timeslots', async () => {
-     await db.dbHandler.sync({ force: true })
+    await db.dbHandler.sync({ force: true });
+
     const testUser = await User.create({
       fullname: 'Test Doctor',
       email: 'doctor201@example.com',
@@ -69,21 +72,23 @@ describe('Shift Routes', () => {
       profilKész: true,
     });
 
-    const response = await request(server)
-      .post('/shifts')
-      .send({
-        doctorId: testDoctorProfile.id,
-        dátum: '2025-01-02',
-        típus: 'délután',
-      });
+    try {
+      const response = await request(server)
+        .post('/shifts')
+        .send({
+          doctorId: testDoctorProfile.id,
+          dátum: '2025-01-02',
+          típus: 'délután',
+        });
 
- expect(response.status).toBe(201);
-expect(response.body).toHaveProperty('shift');
-expect(response.body).toHaveProperty('timeslots');
-
-await Timeslot.destroy({ where: {} });
-await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
-await DoctorProfile.destroy({ where: { userId: testUser.id } });
-await User.destroy({ where: { id: testUser.id } });
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('shift');
+      expect(response.body).toHaveProperty('timeslots');
+    } finally {
+      await Timeslot.destroy({ where: {} });
+      await Shift.destroy({ where: { doctorId: testDoctorProfile.id } });
+      await DoctorProfile.destroy({ where: { userId: testUser.id } });
+      await User.destroy({ where: { id: testUser.id } });
+    }
   });
 });

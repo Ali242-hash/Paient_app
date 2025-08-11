@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Shift, Timeslot } = require('../dbHandler');
+const { Auth } = require('./auth')
 
 router.get('/:doctorId/timeslots', async (req, res) => {
   try {
