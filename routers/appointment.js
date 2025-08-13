@@ -88,4 +88,43 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+  
+    const allowedStatuses = ["booked", "cancelled", "completed", "no_show"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+ 
+    const oneAppointment = await Appointment.findOne({ where: { id } });
+    if (!oneAppointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    if (req.user.role === "patient" && status !== "cancelled") {
+      return res.status(403).json({ message: "Patients can only cancel appointments" });
+    }
+
+    if (req.user.role === "doctor" && !["completed", "no_show"].includes(status)) {
+      return res.status(403).json({ message: "Doctors can only mark completed or no_show" });
+    }
+
+
+    oneAppointment.Status = status;
+    await oneAppointment.save();
+
+    return res.status(200).json({
+      message: `Status updated to ${status}`,
+      appointment: oneAppointment
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+
 module.exports = router

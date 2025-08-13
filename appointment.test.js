@@ -129,5 +129,28 @@ describe('POST /appointments', () => {
     await Shift.destroy({ where: { id: testShift.id } });
     await DoctorProfile.destroy({ where: { id: testDoctor.id } });
     await User.destroy({ where: { id: user.id } });
+  })
+})
+
+describe("PUT /appointments/:id/status", () => {
+  
+  test("Should return 404 when appointment does not exist", async () => {
+    const response = await supertest(server)
+      .put("/appointments/999/status")
+      .send({ status: "completed" })
+
+    expect(response.statusCode).toBe(404);
+    expect(response.body.message).toBe("Appointment not found");
   });
-});
+
+  test("Should return 400 when no status is provided", async () => {
+    const response = await supertest(server)
+      .put("/appointments/1/status")
+      .send({})
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.message).toBe("Invalid status value");
+  })
+
+})
+

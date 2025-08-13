@@ -34,13 +34,20 @@ function Auth() {
 }
 
 router.post('/login', async (req, res) => {
+   
   try {
     const loginUsername = req.body?.loginUsername
     const loginPassword = req.body?.loginPassword
 
+     
+
     if (!loginUsername || !loginPassword) {
       return res.status(400).json({ message: 'Missing credentials' }).end()
+
     }
+
+    
+     
 
     const user = await User.findOne({ where: { username: loginUsername } })
 
