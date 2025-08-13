@@ -163,16 +163,16 @@ async function Load() {
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                   <Text style={{textAlign:"center",fontWeight:"bold",marginTop:15,paddingVertical:10}}>Consultation Time</Text>
                   <Picker
-                    selectedValue={appointment.timeslotId}
+                    selectedValue={appointment.timeslotId || ""}
                     style={{ height: 50, width: 140, borderRadius:10 }}
                     onValueChange={(value) => {
                       const updated = [...appointments];
-                      updated[index].timeslot = value;
+                      updated[index].timeslotId = value;
                       setAppointments(updated);
                     }}
                   >
                     {generateTimeSlots().map((slot, idx) => (
-                    <Picker.Item key={slot.id} label={`${slot.kezdes} - ${slot.veg}`} value={slot.id} />
+                    <Picker.Item key={`slot-${slot.id}`} label={`${slot.kezdes} - ${slot.veg}`} value={slot.id} />
                     ))}
                   </Picker>
 

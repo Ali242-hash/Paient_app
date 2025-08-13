@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { User } = require('../dbHandler');
+const { User, DoctorProfile } = require('../dbHandler');
 const { Auth } = require('./auth')
 
 
@@ -78,7 +78,7 @@ router.post('/register-admin', async (req, res) => {
 router.get('/all', async (req, res) => {
   try {
     const users = await User.findAll();
-    res.json(users);
+    res.json(users)
   } catch (error) {
     res.status(500).json({ message: 'Error fetching users', error: error.message });
   }

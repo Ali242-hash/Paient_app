@@ -37,10 +37,16 @@ module.exports.Shift = dbHandler.define('shifts', {
 
 module.exports.Timeslot = dbHandler.define('timeslots', {
   id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false, autoIncrement: true },
+   doctorId: { type: DataTypes.INTEGER, allowNull: false },
   shiftId: { type: DataTypes.INTEGER, allowNull: false },
   kezdes: { type: DataTypes.STRING, allowNull: false },
   veg: { type: DataTypes.STRING, allowNull: false },
   foglalt: { type: DataTypes.BOOLEAN, defaultValue: false },
+  Status: {
+  type: DataTypes.ENUM("booked", "completed", "cancelled", "no_show"),
+  allowNull: false,
+  defaultValue: "booked"
+}
 })
 
 module.exports.Appointment = dbHandler.define('appointments', {
