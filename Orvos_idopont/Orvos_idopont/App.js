@@ -1,255 +1,276 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image, FlatList, Pressable, TextInput, ImageBackground } from 'react-native'
+import {
+  StyleSheet, Text, View, Image,
+  FlatList, Pressable, TextInput
+} from 'react-native';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import DatePicker from 'react-native-date-picker'; //not supporting Datepicker
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import DatePicker from 'react-native-date-picker';
 import { Picker } from '@react-native-picker/picker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator();
 
-
-function generateTimeSlots() {
+function Generate_TimeSlot() {
   const slots = [];
   for (let hour = 9; hour < 17; hour++) {
     for (let min = 0; min < 60; min += 15) {
-      const h = hour.toString().padStart(2, '0')
-      const m = min.toString().padStart(2, '0')
-      slots.push(`${h}:${m}`)
+      const h = hour.toString().padStart(2, '0');
+      const m = min.toString().padStart(2, '0');
+      slots.push(`${h}:${m}`);
     }
   }
   return slots;
 }
 
 function DoctorScreen({ navigation }) {
-  const [listOfDoctors, setlistOfDoctors] = useState([])
+  const [listofDoctors, SetlistofDcotros] = useState([]);
+  const [listofAppointments, SetlistofAppointments] = useState([]);
   const [refresh, setRefresh] = useState(false);
-  const [appointments, setAppointments] = useState([])
 
-async function Load() {
-  try {
-    const result = await axios.get("http://192.168.0.242:3000/doctorprofiles")
-    const doctors = result.data;
-
-   
-    const doctorsWithSlots = await Promise.all(doctors.map(async (doc) => {
-      
-      const slotsResponse = await axios.get(`http://192.168.0.242:3000/shifts/${doc.id}/timeslots`);
-      return {
-        ...doc,
-        timeslots: slotsResponse.data,
-        number: 1
-      }
-    }))
-
-    setlistOfDoctors(doctorsWithSlots);
-
-    setAppointments(doctorsWithSlots.map(doctor => ({
-      name: '',
-      username: '',
-      email: '',
-      date: new Date(),
-      timeslotId: doctor.timeslots.length > 0 ? doctor.timeslots[0].id : null
-    })));
-  } catch (error) {
-    console.error("Error loading doctors or timeslots:", error);
-  }
-}
-
-  async function ConfirmRegistration(index, doctor) {
-    const appointment = appointments[index];
-    if(!appointment.name || !appointment.username || !appointment.email){
-
-      alert("please fill in all fields")
-      return
-    }
-    const payload = {
-      név: appointment.name,
-      megjegyzés: `${appointment.username} | ${appointment.email}`,
-      timeslotId: appointment.timeslotId
-    };
+  async function Load() {
     try {
-      let all = await AsyncStorage.getItem("appointments")
-      let current = all ? JSON.parse(all) : []
-      current.push({ doctor: doctor.Docname, ...appointment })
-      await AsyncStorage.setItem("appointments", JSON.stringify(current))
-      alert("Registration saved successfully.");
-    } catch (err) {
-      console.log("AsyncStorage error:", err)
+      const { data: doctors } = await axios.get("http://192.168.0.242:3000/doctorprofiles");
+      const doctorswithslots = await Promise.all(
+        doctors.map(async (doc) => {
+          const { data: slotid } = await axios.get(`http://192.168.0.242:3000/Shifts/${doc.id}/timeslots`);
+          return {
+            ...doc,
+            timesslot: slotid,
+            number: 1
+          };
+        })
+      );
+      SetlistofDcotros(doctorswithslots);
+      SetlistofAppointments(
+        doctorswithslots.map((doc) => ({
+          name: "",
+          username: "",
+          email: "",
+          date: new Date(),
+          timeslot: doc.timesslot.length > 0 ? doc.timesslot[0].id : null
+        }))
+      );
+    } catch (error) {
+      console.log("Error loading doctors:", error);
+    }
+  }
+
+  async function Confirm_Registraiton(index, doctor) {
+    const appointment = listofAppointments[index];
+    if (!appointment.name || !appointment.username || !appointment.email) {
+      alert("Please fill in all the boxes");
+      return;
+    }
+    try {
+      let all = await AsyncStorage.getItem("appointments");
+      let current = all ? JSON.parse(all) : [];
+      current.push({ doctor: doctor.Docname, ...appointment });
+      await AsyncStorage.setItem("appointments", JSON.stringify(current));
+      alert("Registration Confirmed");
+    } catch (error) {
+      console.log("Error saving appointment:", error);
     }
   }
 
   useEffect(() => {
-    if (listOfDoctors.length === 0) Load();
-  }, [listOfDoctors]);
+    if (listofDoctors.length === 0) {
+      Load();
+    }
+  }, [listofDoctors]);
 
   function AppIncrease(item) {
-    const index = listOfDoctors.indexOf(item);
-    if (listOfDoctors[index].number < 10) {
-      listOfDoctors[index].number++;
+    const index = listofDoctors.indexOf(item);
+    if (listofDoctors[index].number < 10) {
+      listofDoctors[index].number++;
       setRefresh(!refresh);
     }
   }
 
   function AppDecrease(item) {
-    const index = listOfDoctors.indexOf(item);
-    if (listOfDoctors[index].number - 1 > 0) {
-      listOfDoctors[index].number--;
+    const index = listofDoctors.indexOf(item);
+    if (listofDoctors[index].number - 1 > 0) {
+      listofDoctors[index].number--;
       setRefresh(!refresh);
     }
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Doctor Appointment</Text>
+      <Text style={styles.heading}>Doctor Appointments</Text>
       <Pressable onPress={() => navigation.navigate("Admin")}>
-        <Text style={{ color: 'blue', marginBottom: 20 }}>Go to Admin Page</Text>
+        <Text style={{ color: 'blue', marginBottom: 20 }}>Go to Admin</Text>
       </Pressable>
-
       <FlatList
-        data={listOfDoctors}
-        keyExtractor={(item, index) => item.Docname?.toString() || index.toString()}
+        data={listofDoctors}
+        keyExtractor={(item, index) => (item.Docname || index).toString()}
         renderItem={({ item, index }) => {
-          const appointment = appointments[index];
+          const appointment = listofAppointments[index];
           return (
             <View style={{ padding: 10, borderBottomWidth: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image source={{ uri: item.profilKépUrl }} style={{ width: 80, height: 130, borderRadius: 12, borderColor: "lime", borderWidth: 2 }} />
+              <View style={{ flexDirection: 'row', alignItems: "center" }}>
+                <Image
+                  source={{ uri: item.profilKépUrl }}
+                  style={{ width: 80, height: 120, borderRadius: 12, borderColor: 'lime', borderWidth: 2 }}
+                />
                 <View style={{ marginLeft: 10, flexShrink: 1 }}>
                   <Text style={{ fontWeight: "bold" }}>{item.Docname}</Text>
                   <Text style={{ fontWeight: "bold" }}>Description:</Text>
                   <Text>{item.description}</Text>
-                  <Text style={{ fontWeight: "bold" }}>Speciality:</Text>
+                  <Text style={{ fontWeight: "bold", fontVariant: ['small-caps'] }}>Speciality:</Text>
                   <Text>{item.specialty}</Text>
                   <Text style={{ fontWeight: "bold" }}>Treatment:</Text>
                   <Text>{item.treatments}</Text>
                 </View>
               </View>
-
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{fontSize:15, marginTop:40,fontWeight:"bold",paddingVertical:10}}>Patient Registration</Text>
-                  <TextInput placeholder="Name" value={appointment.name} style={styles.input} onChangeText={(text) => {
-                    const updated = [...appointments];
-                    updated[index].name = text;
-                    setAppointments(updated);
-                  }} />
-
-                  <TextInput placeholder="Username" value={appointment.username} style={styles.input} onChangeText={(text) => {
-                    const updated = [...appointments];
-                    updated[index].username = text;
-                    setAppointments(updated);
-                  }} />
-
-                  <TextInput placeholder="Email" value={appointment.email} style={styles.input} onChangeText={(text) => {
-                    const updated = [...appointments];
-                    updated[index].email = text;
-                    setAppointments(updated);
-                  }} />
-
-                  <DatePicker
-                    date={appointment.date}
-                    onDateChange={(date) => {
-                      const updated = [...appointments];
-                      updated[index].date = date;
-                      setAppointments(updated);
+                  <Text style={{ fontSize: 15, marginTop: 40, fontWeight: 'bold', paddingVertical: 10 }}>Patient Registration</Text>
+                  <TextInput
+                    placeholder='Name'
+                      style={styles.input}
+                    value={appointment.name}
+                    onChangeText={(text) => {
+                      const updated = [...listofAppointments];
+                      updated[index].name = text;
+                      SetlistofAppointments(updated);
                     }}
-                    mode="date"
                   />
-                </View>
+                  <TextInput
+                    placeholder='Username'
+                      style={styles.input}
+                    value={appointment.username}
+                    onChangeText={(text) => {
+                      const updated = [...listofAppointments];
+                      updated[index].username = text;
+                      SetlistofAppointments(updated);
+                    }}
+                  />
+                  <TextInput
+                    placeholder='Email'
+                    value={appointment.email}
+                    style={styles.input}
+                    onChangeText={(text) => {
+                      const updated = [...listofAppointments];
+                      updated[index].email = text;
+                      SetlistofAppointments(updated);
+                    }}
+                  />
 
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={{textAlign:"center",fontWeight:"bold",marginTop:15,paddingVertical:10}}>Consultation Time</Text>
+                  <TextInput
+                value={appointment.date.toISOString().slice(0, 10)}
+                 onChangeText={(text) => {
+                   const updated = [...listofAppointments];
+                  updated[index].date = new Date(text);
+                 SetlistofAppointments(updated);
+                   }}
+               style={styles.input}
+/>
+
+  
+                </View>
+                <View style={{ alignItems: 'flex-end', flex: 1 }}>
+                  <Text style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 20, paddingVertical: 10 }}>Consultation Time</Text>
                   <Picker
-                    selectedValue={appointment.timeslotId || ""}
-                    style={{ height: 50, width: 140, borderRadius:10 }}
+                    selectedValue={appointment.timeslot}
                     onValueChange={(value) => {
-                      const updated = [...appointments];
-                      updated[index].timeslotId = value;
-                      setAppointments(updated);
+                      const updated = [...listofAppointments];
+                      updated[index].timeslot = value;
+                      SetlistofAppointments(updated);
                     }}
                   >
-                    {generateTimeSlots().map((slot, idx) => (
-                    <Picker.Item key={`slot-${slot.id}`} label={`${slot.kezdes} - ${slot.veg}`} value={slot.id} />
+                    {Generate_TimeSlot().map((slot, i) => (
+                      <Picker.Item key={i} label={slot} value={slot} />
                     ))}
                   </Picker>
-
-                  <Pressable onPress={() => ConfirmRegistration(index, item)}>
+                  <Pressable onPress={() => Confirm_Registraiton(index, item)}>
                     <Text style={styles.button}>Confirm Registration</Text>
                   </Pressable>
-
-                  <Text style={{ marginTop: 5,textAlign:"center" }}>Number of Patient</Text>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Pressable onPress={() => AppIncrease(item)}><Text style={{ fontSize: 25,borderColor:"gray",borderWidth:4,borderRadius:15,padding:10,marginTop:12 }}>+</Text></Pressable>
-                    <Text style={{ marginHorizontal: 10 }}>{item.number}</Text>
-                    <Pressable onPress={() => AppDecrease(item)}><Text style={{ fontSize: 25,borderColor:"gray",borderWidth:4,borderRadius:15,padding:10,marginTop:12}}>-</Text></Pressable>
-                  </View>
+                  <Text style={{ marginTop: 20, textAlign: 'center' }}>Number of patient</Text>
+                  <Pressable onPress={() => AppIncrease(item)}>
+                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12 }}>+</Text>
+                  </Pressable>
+                  <Text style={{ marginHorizontal: 10 }}>{item.number}</Text>
+                  <Pressable onPress={() => AppDecrease(item)}>
+                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12 }}>-</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
-          )
+          );
         }}
       />
     </View>
   );
 }
 
-
 function AdminScreen() {
-  const [appointments, setAppointments] = useState([])
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loggedIn, setLoggedIn] = useState(false)
+  const [listofAppointments, SetlistofAppointments] = useState([]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loggedin, setloggedin] = useState(false);
 
-  async function loadAppointments() {
-    const raw = await AsyncStorage.getItem("appointments")
+  async function Load_appointments() {
+    const raw = await AsyncStorage.getItem("appointments");
     if (raw) {
-      setAppointments(JSON.parse(raw))
+      SetlistofAppointments(JSON.parse(raw));
     }
   }
 
-  async function deleteAppointment(index) {
-    const copy = [...appointments]
-    copy.splice(index, 1)
+  async function Delete_Appointments(index) {
+    const copy = [...listofAppointments];
+    copy.splice(index, 1);
     await AsyncStorage.setItem("appointments", JSON.stringify(copy));
-    setAppointments(copy);
+    SetlistofAppointments(copy);
   }
 
-  function handleLogin() {
-    if (email === 'admin@admin.com' && password === 'admin123qwe') {
-      setLoggedIn(true)
-      loadAppointments()
+  function HandleLogin() {
+    if (email == "admin@admin.com" && password == "admin123qwe") {
+      setloggedin(true);
+      Load_appointments();
     } else {
-      alert("Wrong credentials")
+      alert("Invalid credentials");
     }
   }
 
-  if (!loggedIn) {
+  if (!loggedin) {
     return (
       <View style={styles.container}>
-        <TextInput placeholder="Admin Email" value={email} onChangeText={setEmail} style={styles.input} />
-        <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
-        <Pressable onPress={handleLogin}><Text style={styles.button}>Login</Text></Pressable>
-        <Text style={{textAlign:"center", borderWidth:4,borderColor:'blue', marginTop:25,padding:10, alignItems:'center',justifyContent:'flex-end'}}>FYI Admin email is admin@admin.com & Password admin123qwe</Text>
+        <TextInput
+          placeholder='Admin Email'
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+        />
+        <TextInput
+          placeholder='Password'
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          style={styles.input}
+        />
+        <Pressable onPress={HandleLogin}>
+          <Text style={styles.button}>Login</Text>
+        </Pressable>
+        <Text style={{ textAlign: "center", borderWidth: 4, borderColor: 'blue', marginTop: 25, padding: 10 }}>FYI Admin email is admin@admin.com & Password admin123qwe</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Appointments</Text>
-      {appointments.map((app, index) => (
-        <View key={index} style={{ marginBottom: 10 }}>
+      {listofAppointments.map((app, index) => (
+        <View key={index} style={{ marginTop: 10 }}>
           <Text>Doctor: {app.doctor}</Text>
           <Text>Patient: {app.name}</Text>
-          <Text>Username: {app.username}</Text>
           <Text>Email: {app.email}</Text>
           <Text>Date: {new Date(app.date).toLocaleDateString()}</Text>
-          <Text>Time: {app.timeslot}</Text>
-          <Pressable onPress={() => deleteAppointment(index)}>
-            <Text style={{ color: 'red' }}>Delete</Text>
+          <Text>{app.timeslot}</Text>
+          <Pressable onPress={() => Delete_Appointments(index)}>
+            <Text style={{ borderColor: 'red', color: 'red', padding: 10, borderWidth: 4, width:80, marginTop:20 }}>Delete</Text>
           </Pressable>
         </View>
       ))}
@@ -271,7 +292,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#e0f7fa',
     paddingTop: 40,
     paddingHorizontal: 10
   },
@@ -287,13 +308,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
-    width: '90%',
+    width: 160,
     backgroundColor: '#f4f4f4',
-    textAlign: 'center',
-    alignItems:"center",
-    justifyContent:"center",
-    width:160,
-   paddingHorizontal:20
+    textAlign: 'center'
   },
   button: {
     color: 'blue',
@@ -303,8 +320,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 10,
     textAlign: 'center',
-      alignItems:"center",
-    justifyContent:"center",
-    width:160
+    width: 160
   }
-})
+});

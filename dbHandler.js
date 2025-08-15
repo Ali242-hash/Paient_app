@@ -42,11 +42,7 @@ module.exports.Timeslot = dbHandler.define('timeslots', {
   kezdes: { type: DataTypes.STRING, allowNull: false },
   veg: { type: DataTypes.STRING, allowNull: false },
   foglalt: { type: DataTypes.BOOLEAN, defaultValue: false },
-  Status: {
-  type: DataTypes.ENUM("booked", "completed", "cancelled", "no_show"),
-  allowNull: false,
-  defaultValue: "booked"
-}
+
 })
 
 module.exports.Appointment = dbHandler.define('appointments', {
@@ -56,6 +52,11 @@ module.exports.Appointment = dbHandler.define('appointments', {
   név: { type: DataTypes.STRING, allowNull: false },
   megjegyzés: { type: DataTypes.TEXT },
   létrehozásDátuma: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  Status: {
+  type: DataTypes.ENUM("booked", "completed", "cancelled", "no_show"),
+  allowNull: false,
+  defaultValue: "booked"
+}
 })
 
 module.exports.Specialization = dbHandler.define('specializations', {
