@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { Appointment, Timeslot } = require('../dbHandler')
 const { Auth } = require('./auth')
+const { where, Sequelize } = require('sequelize')
 
 router.get('/free/:doctorId', async (req, res) => {
   try {
@@ -91,40 +92,136 @@ router.delete('/:id', async (req, res) => {
 router.put("/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { Status_Condition } = req.body;
 
-  
-    const allowedStatuses = ["booked", "cancelled", "completed", "no_show"];
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
+    const allowed_appointments = ["booked", "completed", "cancelled", "no_show"];
+
+
+    if (!allowed_appointments.includes(Status_Condition)) {
+      return res.status(400).json({ message: "Invalid appointment status" }).end();
     }
 
- 
-    const oneAppointment = await Appointment.findOne({ where: { id } });
-    if (!oneAppointment) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
+    const one_appointment = await Appointment.findOne({ where: { id } });
 
-    if (req.user.role === "patient" && status !== "cancelled") {
-      return res.status(403).json({ message: "Patients can only cancel appointments" });
-    }
-
-    if (req.user.role === "doctor" && !["completed", "no_show"].includes(status)) {
-      return res.status(403).json({ message: "Doctors can only mark completed or no_show" });
+    if (!one_appointment) {
+      return res.status(404).json({ message: "No meeting found" }).end();
     }
 
 
-    oneAppointment.Status = status;
-    await oneAppointment.save();
+    if (req.user.role === "patient") {
+      if (Status_Condition !== "cancelled") {
+        return res.status(403).json({ message: "Patients can only cancel appointments" }).end();
+      }
+      if (one_appointment.userId !== req.user.id) {
+        return res.status(403).json({ message: "You can only cancel your own appointments" }).end();
+      }
 
-    return res.status(200).json({
-      message: `Status updated to ${status}`,
-      appointment: oneAppointment
-    });
+    
+      if (new Date(one_appointment.date) < new Date()) {
+        return res.status(400).json({ message: "You cannot cancel past appointments" }).end();
+      }
+    }
+
+
+    if (req.user.role === "doctor") {
+      if (!["completed", "no_show"].includes(Status_Condition)) {
+        return res.status(403).json({ message: "Doctors can only mark appointments as completed or no_show" }).end()
+      }
+      if (one_appointment.doctorId !== req.user.id) {
+        return res.status(403).json({ message: "You can only update your own appointments" }).end()
+      }
+    }
+
+
+    one_appointment.Status_Condition = Status_Condition;
+    await one_appointment.save();
+
+    return res.status(200).json({ message: "Status updated", one_appointment: one_appointment });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
-});
+})
+
+router.get("/doctor/history",async(req,res)=>{
+
+  try{
+
+    if(req.user.role !== "doctor"){
+
+      return res.status(403).json({"message":"Access denied"}).end()
+    }
+
+    const pastappointment = await Appointment.findAll({
+      where:{
+        doctorId:req.user.id,
+        date:{[Sequelize.Op.lt]:Date()}
+      },
+
+      order:[["date","DESC"]]
+    })
+
+    return res.status(200).json(pastappointment)
+  }
+
+  catch(error){
+
+    res.status(500).json({message:"Internal error",error:error.message})
+  }
+})
+
+router.post("/manual", async (req, res) => {
+  try {
+    const { doctorId, userId, date, Status_Condition } = req.body;
+
+   
+    if (!doctorId || !userId || !date) {
+      return res.status(400).json({ message: "doctorId, userId, and date are required" });
+    }
+
+
+    const allowedStatuses = ["booked", "completed", "cancelled", "no_show"];
+    const status = Status_Condition || "booked";
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid appointment status" });
+    }
+
+
+    const appointmentDate = new Date(date);
+    if (isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+  
+    const existingAppointment = await Appointment.findOne({
+      where: {
+        doctorId,
+        date: appointmentDate
+      }
+    });
+
+    if (existingAppointment) {
+      return res.status(409).json({ message: "Doctor already has an appointment at this time" });
+    }
+
+
+    const newAppointment = await Appointment.create({
+      doctorId,
+      userId,
+      date: appointmentDate,
+      Status_Condition: status,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return res.status(201).json({
+      message: "Manual appointment created successfully",
+      appointment: newAppointment
+    });
+  } catch (error) {
+    console.error("Error creating manual appointment:", error);
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+})
 
 
 module.exports = router
