@@ -137,20 +137,139 @@ describe("PUT /appointments/:id/status", () => {
   test("Should return 404 when appointment does not exist", async () => {
     const response = await supertest(server)
       .put("/appointments/999/status")
-      .send({ status: "completed" })
+      .send({ Status_Condition: "completed" })
 
     expect(response.statusCode).toBe(404);
-    expect(response.body.message).toBe("Appointment not found");
+    expect(response.body.message).toBe("No meeting found");
   });
 
-  test("Should return 400 when no status is provided", async () => {
+  test("Should return 400 when invalid status is provided", async () => {
     const response = await supertest(server)
       .put("/appointments/1/status")
-      .send({})
+      .send({ Status_Condition: "invalid_status" })
 
     expect(response.statusCode).toBe(400);
-    expect(response.body.message).toBe("Invalid status value");
+    expect(response.body.message).toBe("Invalid appointment")
+  })
+
+
+});
+
+describe("GET /appointments/doctor/history", () => {
+
+  test("should return 403 if user is not a doctor", async () => {
+    const patientToken = generateToken({ id: 1, role: "patient" }); // mock token for patient
+    const response = await supertest(server)
+      .get("/appointments/doctor/history")
+      .set("Authorization", `Bearer ${patientToken}`);
+
+    expect(response.statusCode).toBe(403);
+    expect(response.body.message).toBe("Access denied");
+  });
+
+  test("should return 200 with past appointments for doctor", async () => {
+    const doctorToken = generateToken({ id: 2, role: "doctor" });
+
+    await Appointment.create({
+      doctorId: 2,
+      userId: 10,
+      date: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      Status_Condition: "completed"
+    });
+
+    const response = await supertest(server)
+      .get("/appointments/doctor/history")
+      .set("Authorization", `Bearer ${doctorToken}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body[0]).toHaveProperty("doctorId", 2)
+    expect(response.body[0]).toHaveProperty("Status_Condition", "completed");
+  });
+
+  test("should return 200 with empty array if no past appointments", async () => {
+    const doctorToken = generateToken({ id: 3, role: "doctor" })
+
+    const response = await supertest(server)
+      .get("/appointments/doctor/history")
+      .set("Authorization", `Bearer ${doctorToken}`);
+
+    expect(response.statusCode).toBe(200);
+   
   })
 
 })
+describe("POST /appointments/manual", () => {
+  test("Should create a manual appointment successfully", async () => {
+    const response = await supertest(server)
+      .post("/appointments/manual")
+      .send({
+        doctorId: 1,
+        userId: 2,
+        date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        Status_Condition: "booked"
+      });
 
+    expect(response.statusCode).toBe(201);
+    expect(response.body).toHaveProperty("message", "Manual appointment created successfully");
+    expect(response.body.appointment).toHaveProperty("id");
+  });
+
+  test("Should return 400 when required fields are missing", async () => {
+    const response = await supertest(server)
+      .post("/appointments/manual")
+      .send({ doctorId: 1 })
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.message).toBe("doctorId, userId, and date are required");
+  });
+
+  test("Should return 400 for invalid date format", async () => {
+    const response = await supertest(server)
+      .post("/appointments/manual")
+      .send({
+        doctorId: 1,
+        userId: 2,
+        date: "invalid-date"
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.message).toBe("Invalid date format");
+  });
+
+  test("Should return 400 for invalid status", async () => {
+    const response = await supertest(server)
+      .post("/appointments/manual")
+      .send({
+        doctorId: 1,
+        userId: 2,
+        date: new Date(),
+        Status_Condition: "invalid_status"
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.message).toBe("Invalid appointment status");
+  });
+
+  test("Should return 409 if doctor already has an appointment at this time", async () => {
+    const date = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+
+    await supertest(server).post("/appointments/manual").send({
+      doctorId: 1,
+      userId: 2,
+      date
+    });
+
+   
+    const response = await supertest(server)
+      .post("/appointments/manual")
+      .send({
+        doctorId: 1,
+        userId: 3,
+        date
+      });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.body.message).toBe("Doctor already has an appointment at this time");
+  })
+})
