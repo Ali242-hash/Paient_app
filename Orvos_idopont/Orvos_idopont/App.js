@@ -12,6 +12,7 @@ import DatePicker from 'react-native-date-picker';
 import { Picker } from '@react-native-picker/picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
+
 const Stack = createNativeStackNavigator();
 
 function Generate_TimeSlot() {
@@ -104,6 +105,15 @@ function DoctorScreen({ navigation }) {
       <Pressable onPress={() => navigation.navigate("Admin")}>
         <Text style={{ color: 'blue', marginBottom: 20 }}>Go to Admin</Text>
       </Pressable>
+      <Pressable onPress={()=>navigation.navigate("History")}>
+        <Text style={{ color: 'blue', marginBottom: 20 }}>Show Histroy</Text>
+      </Pressable>
+       <Pressable onPress={()=>navigation.navigate("Cancellation")}>
+        <Text style={{ color: 'blue', marginBottom: 20 }}>CancelAppointment</Text>
+      </Pressable>
+
+ 
+  
       <FlatList
         data={listofDoctors}
         keyExtractor={(item, index) => (item.Docname || index).toString()}
@@ -131,7 +141,7 @@ function DoctorScreen({ navigation }) {
                   <Text style={{ fontSize: 15, marginTop: 40, fontWeight: 'bold', paddingVertical: 10 }}>Patient Registration</Text>
                   <TextInput
                     placeholder='Name'
-                      style={styles.input}
+                    style={styles.input}
                     value={appointment.name}
                     onChangeText={(text) => {
                       const updated = [...listofAppointments];
@@ -141,7 +151,7 @@ function DoctorScreen({ navigation }) {
                   />
                   <TextInput
                     placeholder='Username'
-                      style={styles.input}
+                    style={styles.input}
                     value={appointment.username}
                     onChangeText={(text) => {
                       const updated = [...listofAppointments];
@@ -159,18 +169,15 @@ function DoctorScreen({ navigation }) {
                       SetlistofAppointments(updated);
                     }}
                   />
-
                   <TextInput
-                value={appointment.date.toISOString().slice(0, 10)}
-                 onChangeText={(text) => {
-                   const updated = [...listofAppointments];
-                  updated[index].date = new Date(text);
-                 SetlistofAppointments(updated);
-                   }}
-               style={styles.input}
-/>
-
-  
+                    value={appointment.date.toISOString().slice(0, 10)}
+                    onChangeText={(text) => {
+                      const updated = [...listofAppointments];
+                      updated[index].date = new Date(text);
+                      SetlistofAppointments(updated);
+                    }}
+                    style={styles.input}
+                  />
                 </View>
                 <View style={{ alignItems: 'flex-end', flex: 1 }}>
                   <Text style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 20, paddingVertical: 10 }}>Consultation Time</Text>
@@ -206,6 +213,58 @@ function DoctorScreen({ navigation }) {
     </View>
   );
 }
+
+function Cancel_Appointment({ navigation }) {
+  const [historyappointments, setHistoryAppointments] = useState([]);
+
+  useEffect(() => {
+    async function loadHistory() {
+      const raw = await AsyncStorage.getItem("appointments");
+      if (raw) setHistoryAppointments(JSON.parse(raw));
+    }
+    loadHistory();
+  }, [])
+
+  async function cancelAppointment(index) {
+    try {
+      const updated = [...historyappointments];
+      updated[index].Status_Condition = "cancelled";
+      setHistoryAppointments(updated);
+      await AsyncStorage.setItem("appointments", JSON.stringify(updated));
+      alert("Appointment cancelled");
+    } catch (error) {
+      console.log("Error cancelling appointment", error);
+    }
+  }
+
+  return (
+    <View style={{ flex: 1}}>
+      <Text style={{ fontWeight: 'bold', marginBottom: 20 }}>Cancel Appointment</Text>
+      {historyappointments.length > 0 ? (
+        historyappointments.map((item, index) => (
+          <View key={index} style={{ marginBottom: 10, alignItems: 'center' }}>
+            <Text>Doctor: {item.doctor}</Text>
+            <Text>Patient: {item.name}</Text>
+            <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
+            <Text>Status: {item.Status_Condition || "booked"}</Text>
+            <Pressable onPress={() => cancelAppointment(index)}>
+              <Text style={{
+                borderColor: 'red',
+                color: 'red',
+                padding: 10,
+                borderWidth: 2,
+                marginTop: 5
+              }}>Cancel</Text>
+            </Pressable>
+          </View>
+        ))
+      ) : (
+        <Text>No appointments to cancel</Text>
+      )}
+    </View>
+  );
+}
+
 
 function AdminScreen() {
   const [listofAppointments, SetlistofAppointments] = useState([]);
@@ -278,12 +337,57 @@ function AdminScreen() {
   );
 }
 
+function Histroy_Screen() {
+  const [historyappointments, sethistroyappointments] = useState([]);
+  const [loading, setloading] = useState(true);
+
+  useEffect(() => {
+    async function Loadin_Histroy() {
+      const raw = await AsyncStorage.getItem("appointments");
+      if (raw) {
+        sethistroyappointments(JSON.parse(raw));
+      }
+      setloading(false);
+    }
+    Loadin_Histroy();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ padding: 20 }}>
+      {historyappointments.length > 0 ? (
+        historyappointments.map((item, index) => (
+          <View key={index} style={{ marginBottom: 10 }}>
+            <Text>Doctor: {item.doctor}</Text>
+            <Text>Name: {item.name}</Text>
+            <Text>Email: {item.email}</Text>
+            <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
+            <Text>Time: {item.timeslot}</Text>
+          </View>
+        ))
+      ) : (
+        <Text>No past appointments found.</Text>
+      )}
+    </View>
+  );
+}
+
+
 export default function App() {
   return (
-    <NavigationContainer>
+    <NavigationContainer >
       <Stack.Navigator initialRouteName="Doctor">
         <Stack.Screen name="Doctor" component={DoctorScreen} />
-        <Stack.Screen name="Admin" component={AdminScreen} />
+        <Stack.Screen name="Admin"  component={AdminScreen} />
+        <Stack.Screen name="History" component={Histroy_Screen} />
+        <Stack.Screen name="Cancellation" component={Cancel_Appointment} />
       </Stack.Navigator>
     </NavigationContainer>
   );

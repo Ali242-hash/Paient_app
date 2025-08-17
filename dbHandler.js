@@ -52,11 +52,11 @@ module.exports.Appointment = dbHandler.define('appointments', {
   név: { type: DataTypes.STRING, allowNull: false },
   megjegyzés: { type: DataTypes.TEXT },
   létrehozásDátuma: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  Status: {
-  type: DataTypes.ENUM("booked", "completed", "cancelled", "no_show"),
-  allowNull: false,
-  defaultValue: "booked"
-}
+  Status_Condition:{
+    type:DataTypes.ENUM("booked","completed","cancelled","no_show"),
+    defaultValue:"booked",
+    allowNull:false
+  }
 })
 
 module.exports.Specialization = dbHandler.define('specializations', {
