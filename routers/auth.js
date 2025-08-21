@@ -36,8 +36,9 @@ function Auth() {
 router.post('/login', async (req, res) => {
    
   try {
-    const loginUsername = req.body?.loginUsername
-    const loginPassword = req.body?.loginPassword
+   
+    const loginUsername = req.body?.logiUsername;
+    const loginPassword = req.body?.logiPassword;
 
      
 

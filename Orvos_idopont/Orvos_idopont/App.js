@@ -12,6 +12,8 @@ import DatePicker from 'react-native-date-picker';
 import { Picker } from '@react-native-picker/picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 
+import { ImageBackground } from 'react-native'
+
 
 const Stack = createNativeStackNavigator();
 
@@ -60,22 +62,41 @@ function DoctorScreen({ navigation }) {
     }
   }
 
-  async function Confirm_Registraiton(index, doctor) {
-    const appointment = listofAppointments[index];
-    if (!appointment.name || !appointment.username || !appointment.email) {
-      alert("Please fill in all the boxes");
+async function Confirm_Registration(index, user) {
+  const appointments = listofAppointments[index];
+
+  if (!appointments.name || !appointments.username || !appointments.email) {
+    alert("Please fill in the necessary details");
+    return;
+  }
+
+  try {
+    let all = await AsyncStorage.getItem("appointments");
+    let current = all ? JSON.parse(all) : [];
+
+    const isDuplicate = current.some(
+      (a) => a.username === user.username && a.timeslot === user.timeslot
+    );
+    if (isDuplicate) {
+      alert("This patient already has an appointment at this time");
       return;
     }
-    try {
-      let all = await AsyncStorage.getItem("appointments");
-      let current = all ? JSON.parse(all) : [];
-      current.push({ doctor: doctor.Docname, ...appointment });
-      await AsyncStorage.setItem("appointments", JSON.stringify(current));
-      alert("Registration Confirmed");
-    } catch (error) {
-      console.log("Error saving appointment:", error);
-    }
+
+    current.push({
+      ...appointments,
+      doctor: user.Docname,
+      email:user.email,
+  username:user.username,
+    });
+
+    await AsyncStorage.setItem("appointments", JSON.stringify(current));
+    alert("Registration confirmed");
+  } catch (error) {
+    console.log("Registration failed:", error);
   }
+}
+
+
 
   useEffect(() => {
     if (listofDoctors.length === 0) {
@@ -100,10 +121,15 @@ function DoctorScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+   <ImageBackground
+     source={{ uri: 'https://cdn.pixabay.com/photo/2018/11/02/14/52/nurse-3790361_1280.jpg' }}
+  style={styles.container}
+  resizeMode="cover"
+
+   >
       <Text style={styles.heading}>Doctor Appointments</Text>
       <Pressable onPress={() => navigation.navigate("Admin")}>
-        <Text style={{ color: 'blue', marginBottom: 20 }}>Go to Admin</Text>
+        <Text style={{ color: 'blue', marginBottom: 20}}>Go to Admin</Text>
       </Pressable>
       <Pressable onPress={()=>navigation.navigate("History")}>
         <Text style={{ color: 'blue', marginBottom: 20 }}>Show Histroy</Text>
@@ -127,18 +153,18 @@ function DoctorScreen({ navigation }) {
                   style={{ width: 80, height: 120, borderRadius: 12, borderColor: 'lime', borderWidth: 2 }}
                 />
                 <View style={{ marginLeft: 10, flexShrink: 1 }}>
-                  <Text style={{ fontWeight: "bold" }}>{item.Docname}</Text>
-                  <Text style={{ fontWeight: "bold" }}>Description:</Text>
-                  <Text>{item.description}</Text>
-                  <Text style={{ fontWeight: "bold", fontVariant: ['small-caps'] }}>Speciality:</Text>
-                  <Text>{item.specialty}</Text>
-                  <Text style={{ fontWeight: "bold" }}>Treatment:</Text>
-                  <Text>{item.treatments}</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.Docname}</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>Description:</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.description}</Text>
+                  <Text style={{ fontWeight: "bold", fontVariant: ['small-caps'],color:'white' }}>Speciality:</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.specialty}</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>Treatment:</Text>
+                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.treatments}</Text>
                 </View>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, marginTop: 40, fontWeight: 'bold', paddingVertical: 10 }}>Patient Registration</Text>
+                  <Text style={{ fontSize: 15, marginTop: 40, fontWeight: 'bold', paddingVertical: 10, color:'white' }}>Patient Registration</Text>
                   <TextInput
                     placeholder='Name'
                     style={styles.input}
@@ -180,29 +206,30 @@ function DoctorScreen({ navigation }) {
                   />
                 </View>
                 <View style={{ alignItems: 'flex-end', flex: 1 }}>
-                  <Text style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 20, paddingVertical: 10 }}>Consultation Time</Text>
+                  <Text style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 20, paddingVertical: 10, color:'white' }}>Consultation Time</Text>
                   <Picker
                     selectedValue={appointment.timeslot}
                     onValueChange={(value) => {
-                      const updated = [...listofAppointments];
-                      updated[index].timeslot = value;
-                      SetlistofAppointments(updated);
+                      const updated = [...listofAppointments]
+                      updated[index].timeslot = value
+                      SetlistofAppointments(updated)
                     }}
                   >
                     {Generate_TimeSlot().map((slot, i) => (
                       <Picker.Item key={i} label={slot} value={slot} />
                     ))}
                   </Picker>
-                  <Pressable onPress={() => Confirm_Registraiton(index, item)}>
-                    <Text style={styles.button}>Confirm Registration</Text>
-                  </Pressable>
-                  <Text style={{ marginTop: 20, textAlign: 'center' }}>Number of patient</Text>
+                  <Pressable onPress={() => Confirm_Registration(index, item)}>
+                   <Text style={styles.button}>Confirm Registration</Text>
+                   </Pressable>
+
+                  <Text style={{ marginTop: 20, textAlign: 'center',color:'white' }}>Number of patient</Text>
                   <Pressable onPress={() => AppIncrease(item)}>
-                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12 }}>+</Text>
+                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12, color:'white' }}>+</Text>
                   </Pressable>
                   <Text style={{ marginHorizontal: 10 }}>{item.number}</Text>
                   <Pressable onPress={() => AppDecrease(item)}>
-                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12 }}>-</Text>
+                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12,color:'white' }}>-</Text>
                   </Pressable>
                 </View>
               </View>
@@ -210,10 +237,10 @@ function DoctorScreen({ navigation }) {
           );
         }}
       />
-    </View>
+    
+</ImageBackground>
   );
 }
-
 function Cancel_Appointment({ navigation }) {
   const [historyappointments, setHistoryAppointments] = useState([]);
 
@@ -265,7 +292,6 @@ function Cancel_Appointment({ navigation }) {
   );
 }
 
-
 function AdminScreen() {
   const [listofAppointments, SetlistofAppointments] = useState([]);
   const [email, setEmail] = useState('');
@@ -295,47 +321,62 @@ function AdminScreen() {
     }
   }
 
-  if (!loggedin) {
-    return (
-      <View style={styles.container}>
-        <TextInput
-          placeholder='Admin Email'
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder='Password'
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={styles.input}
-        />
-        <Pressable onPress={HandleLogin}>
-          <Text style={styles.button}>Login</Text>
-        </Pressable>
-        <Text style={{ textAlign: "center", borderWidth: 4, borderColor: 'blue', marginTop: 25, padding: 10 }}>FYI Admin email is admin@admin.com & Password admin123qwe</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      {listofAppointments.map((app, index) => (
-        <View key={index} style={{ marginTop: 10 }}>
-          <Text>Doctor: {app.doctor}</Text>
-          <Text>Patient: {app.name}</Text>
-          <Text>Email: {app.email}</Text>
-          <Text>Date: {new Date(app.date).toLocaleDateString()}</Text>
-          <Text>{app.timeslot}</Text>
-          <Pressable onPress={() => Delete_Appointments(index)}>
-            <Text style={{ borderColor: 'red', color: 'red', padding: 10, borderWidth: 4, width:80, marginTop:20 }}>Delete</Text>
+    <ImageBackground 
+     source={{ uri: '	https://cdn.pixabay.com/photo/2017/02/16/19/47/bokeh-2072271_1280.jpg' }}
+        style={{
+ 
+          width: 300,         
+    height: 400,        
+    alignSelf: 'center', 
+    marginTop: 50,      
+  }}
+
+      resizeMode="cover"
+      
+    >
+      {!loggedin ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <TextInput
+            placeholder='Admin Email'
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+          />
+          <TextInput
+            placeholder='Password'
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+          />
+          <Pressable onPress={HandleLogin}>
+            <Text style={styles.button}>Login</Text>
           </Pressable>
+          <Text style={{ textAlign: "center", borderWidth: 4, borderColor: 'blue', marginTop: 25, padding: 10 }}>
+            FYI Admin email is admin@admin.com & Password admin123qwe
+          </Text>
         </View>
-      ))}
-    </View>
+      ) : (
+        <View style={{ flex: 1, paddingTop: 40 }}>
+          {listofAppointments.map((app, index) => (
+            <View key={index} style={{ marginTop: 10 }}>
+              <Text>Doctor: {app.doctor}</Text>
+              <Text>Patient: {app.name}</Text>
+              <Text>Email: {app.email}</Text>
+              <Text>Date: {new Date(app.date).toLocaleDateString()}</Text>
+              <Text>{app.timeslot}</Text>
+              <Pressable onPress={() => Delete_Appointments(index)}>
+                <Text style={{ borderColor: 'red', color: 'red', padding: 10, borderWidth: 4, width:80, marginTop:20 }}>Delete</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+    </ImageBackground>
   );
 }
+
 
 function Histroy_Screen() {
   const [historyappointments, sethistroyappointments] = useState([]);
@@ -396,16 +437,23 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e0f7fa',
+  //  backgroundColor: '#e0f7fa',
     paddingTop: 40,
     paddingHorizontal: 10
   },
-  heading: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center"
-  },
+heading: {
+  fontSize: 20,
+  fontWeight: "bold",
+
+  textAlign: "center", 
+  color: 'white',
+  borderColor: 'gray',
+  borderWidth: 2,
+  padding: 15,
+  alignSelf: 'center',
+  // width: '80%', 
+ 
+},
   input: {
     borderWidth: 1,
     borderColor: 'gray',
@@ -425,5 +473,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
     width: 160
-  }
+  },
+  imageBackground: {
+  flex: 1,
+  paddingTop: 40,
+  paddingHorizontal: 10,
+  marginTop:30
+}
 });
