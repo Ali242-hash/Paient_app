@@ -4,6 +4,13 @@ const { Appointment, Timeslot } = require('../dbHandler')
 const { Auth } = require('./auth')
 const { where, Sequelize } = require('sequelize')
 
+
+router.get('/appointments',async(req,res)=>{
+
+  const appointments = await Appointment.findAll()
+  res.json(appointments)
+})
+
 router.get('/free/:doctorId', async (req, res) => {
   try {
     const doctorId = parseInt(req.params.doctorId)
