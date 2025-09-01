@@ -4,7 +4,7 @@ import {
   FlatList, Pressable, TextInput
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios, { all } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,6 +12,8 @@ import DatePicker from 'react-native-date-picker';
 import { Picker } from '@react-native-picker/picker';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ImageBackground } from 'react-native';
+
+
 
 
 
@@ -54,7 +56,7 @@ function DoctorScreen({ navigation }) {
           username: "",
           email: "",
           date: new Date(),
-          timeslot: doc.timesslot.length > 0 ? doc.timesslot[0].id : null
+          timeslot: doc.timesslot.length > 0 ? doc.timesslot[0].id : ""
         }))
       );
     } catch (error) {
@@ -65,7 +67,7 @@ function DoctorScreen({ navigation }) {
 async function Confirm_Registraiton(index, user) {
   const appointments = listofAppointments[index];
 
-  if (!appointments.name || !appointments.email || !appointments.username) {
+  if (!appointments.name || !appointments.email || !appointments.username ) {
     alert("Please fill in your credentials");
     return;
   }
@@ -78,7 +80,8 @@ async function Confirm_Registraiton(index, user) {
       (a) =>
         a.name === appointments.name &&
         a.email === appointments.email &&
-        a.username === appointments.username
+        a.username === appointments.username 
+    
     );
 
     if (isDuplicate) {
@@ -91,8 +94,9 @@ async function Confirm_Registraiton(index, user) {
       name: appointments.name,
       email: appointments.email,
       username: appointments.username,
-      doctors: user.Docname,
-      Status_Condition: "booked"
+      doctor: user.Docname,
+      Status_Condition: "booked",
+      date:appointments.date.toISOString()
     });
 
     await AsyncStorage.setItem("appointments", JSON.stringify(current));
@@ -101,6 +105,7 @@ async function Confirm_Registraiton(index, user) {
     console.log("Your registration was not successful", error);
   }
 }
+
 
   useEffect(() => {
     if (listofDoctors.length === 0) {
@@ -266,48 +271,70 @@ function Cancel_Appointment({ navigation }) {
     loadHistory();
   }, [])
 
-  async function cancelAppointment(index) {
-    try {
-      const updated = [...historyappointments];
-      updated[index].Status_Condition = "booked";
-      setHistoryAppointments(updated);
-      await AsyncStorage.setItem("appointments", JSON.stringify(updated));
-      alert("Appointment cancelled");
-    } catch (error) {
-      console.log("Error cancelling appointment", error);
-    }
+async function cancelAppointment(index) {
+  try {
+    const updated = [...historyappointments];
+    updated[index].Status_Condition = "cancelled";
+    setHistoryAppointments(updated);
+    await AsyncStorage.setItem("appointments", JSON.stringify(updated));
+    alert("Appointment cancelled");
+  } catch (error) {
+    console.log("Error cancelling appointment", error);
   }
+}
 
-  return (
-    <ImageBackground 
-    
-    source={{uri:'https://cdn.pixabay.com/photo/2023/03/11/14/52/background-7844628_1280.png'}}
+return (
+  <imageBackground 
+      source={{uri:'https://cdn.pixabay.com/photo/2023/03/11/14/52/background-7844628_1280.png'}}
     resizeMode='cover'
-    style={{ flex: 1, marginTop:30}}>
-      
-      {historyappointments.length > 0 ? (
-        historyappointments.map((item, index) => (
-          <View key={index} style={{ marginBottom: 10, alignItems:'flex-start',marginHorizontal:20,borderColor:'lime',borderWidth:2,padding:20,borderRadius:15 }}>
-            <Text style={{color:'dark red'}}>Doctor: {item.doctor}</Text>
-            <Text>Patient: {item.name}</Text>
-            <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
-            <Text>Status: {item.Status_Condition || "cancelled"}</Text>
-            <Pressable onPress={() => cancelAppointment(index)}>
-              <Text style={{
-                borderColor: 'red',
-                color: 'red',
-                padding: 10,
+    style={{ flex: 1, marginTop: 30 }}
+  >
+    {historyappointments.length > 0 ? (
+      <View style={{ flex: 1, paddingTop: 10 }}>
+  
+          {historyappointments.map((item, index) => (
+            <View
+              key={index}
+              style={{
+                marginBottom: 10,
+                alignItems: 'flex-start',
+                marginHorizontal: 20,
+                borderColor: 'lime',
                 borderWidth: 2,
-                marginTop: 5
-              }}>Cancel</Text>
-            </Pressable>
-          </View>
-        ))
-      ) : (
+                padding: 20,
+                borderRadius: 15
+              }}
+            >
+              <Text style={{ color: 'darkred' }}>Doctor: {item.doctor}</Text>
+              <Text>Patient: {item.name}</Text>
+              <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
+              <Text>Status: {item.Status_Condition || "cancelled"}</Text>
+              <Pressable onPress={() => cancelAppointment(index)}>
+                <Text style={{
+                  borderColor: 'red',
+                  color: 'red',
+                  padding: 10,
+                  borderWidth: 2,
+                  marginTop: 5
+                }}>
+                  Cancel
+                </Text>
+              </Pressable>
+            </View>
+          ))}
+    
+      </View>
+    ) : (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>No appointments to cancel</Text>
-      )}
-    </ImageBackground>
-  );
+      </View>
+    )}
+  </imageBackground>
+);
+
+
+
+
 }
 
 
@@ -408,16 +435,49 @@ function Histroy_Screen() {
   const [historyappointments, sethistroyappointments] = useState([]);
   const [loading, setloading] = useState(true);
 
-  useEffect(() => {
-    async function Loadin_Histroy() {
-      const raw = await AsyncStorage.getItem("appointments");
-      if (raw) {
-        sethistroyappointments(JSON.parse(raw));
+
+async function AutoComplte_Pastappointments() {
+  try {
+    let all = await AsyncStorage.getItem("appointments");
+    let current = all ? JSON.parse(all) : [];
+    const now = new Date();
+
+    const updated = current.map(app => {
+      if (app.Status_Condition === "booked") {
+        const startTime = typeof app.timeslot === "string" ? app.timeslot.split(" - ")[0] : "00:00";
+        const appointmentDate = new Date(`${app.date} ${startTime}`);
+        if (now > appointmentDate) {
+          return { ...app, Status_Condition: "completed" };
+        }
       }
-      setloading(false);
-    }
-    Loadin_Histroy();
-  }, []);
+      return app;
+    });
+
+    await AsyncStorage.setItem("appointments", JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.log("Error fetching appointments data", error);
+  }
+}
+
+
+
+
+useEffect(() => {
+  const Fetch_Data = async () => {
+  
+    const raw = await AsyncStorage.getItem("appointments")
+    const initial = raw ? JSON.parse(raw):[]
+    sethistroyappointments(initial)
+    const update_list = await AutoComplte_Pastappointments() || []
+    sethistroyappointments(update_list)
+    setloading(false)
+
+
+  }
+  Fetch_Data();
+}, []);
+
 
   if (loading) {
     return (
@@ -428,7 +488,19 @@ function Histroy_Screen() {
   }
 
   return (
-    <View style={{ padding: 20 }}>
+    <ImageBackground
+      source={{
+        uri: "https://cdn.pixabay.com/photo/2023/03/11/14/52/background-7844628_1280.png",
+      }}
+      style={{
+        flex: 1,
+        padding: 20,
+        borderColor: "lime",
+        borderWidth: 3,
+        borderRadius: 15,
+      }}
+      resizeMode="cover"
+    >
       {historyappointments.length > 0 ? (
         historyappointments.map((item, index) => (
           <View key={index} style={{ marginBottom: 10 }}>
@@ -437,14 +509,16 @@ function Histroy_Screen() {
             <Text>Email: {item.email}</Text>
             <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
             <Text>Time: {item.timeslot}</Text>
+            <Text>Status: {item.Status_Condition}</Text> 
           </View>
         ))
       ) : (
-        <Text>No past appointments found.</Text>
+       <Text>No past appointments found.</Text>
       )}
-    </View>
+    </ImageBackground>
   );
 }
+
 
 
 export default function App() {
