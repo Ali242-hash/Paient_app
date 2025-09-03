@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const { Appointment, Timeslot } = require('../dbHandler')
-const { Auth } = require('./auth')
-const { where, Sequelize } = require('sequelize')
+const { Auth } = require('./auth') 
+
 
 
 router.get('/appointments',async(req,res)=>{
@@ -148,6 +148,21 @@ router.put("/:id/status", async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 })
+
+router.get("/history", async (req, res) => {
+  try {
+ 
+    const allappointments = await Appointment.findAll({
+        
+      order: [["létrehozásDátuma", "DESC"]],
+    });
+
+    res.status(200).json(allappointments);
+  } catch (error) {
+    res.status(500).json({ message: "Internal error", error: error.message });
+  }
+});
+
 
 router.get("/doctor/history",async(req,res)=>{
 

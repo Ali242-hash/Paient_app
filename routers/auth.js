@@ -25,8 +25,11 @@ function Auth() {
     const token = tokenparts[1];
     try {
       const decodToken = jwt.verify(token, secretkey)
-      req.userId = decodToken.id;
-      req.role = decodToken.role;
+        req.user = {
+        id: decodToken.id,
+        role: decodToken.role,
+        username: decodToken.username
+      }
       next();
     } catch (error) {
       res.status(401).json({ message: 'Invalid token' })
