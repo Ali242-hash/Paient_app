@@ -121,7 +121,7 @@ async function Confirm_Registraiton(index, user) {
     }
   }
 
-  function AppDecrease(item) {
+    function AppDecrease(item) {
     const index = listofDoctors.indexOf(item);
     if (listofDoctors[index].number - 1 > 0) {
       listofDoctors[index].number--;
@@ -153,6 +153,10 @@ async function Confirm_Registraiton(index, user) {
   
   <Pressable onPress={() => navigation.navigate("Cancel")}>
     <Text style={{ color: 'lime', fontSize: 18 }}>• Cancel</Text>
+  </Pressable>
+
+    <Pressable onPress={() => navigation.navigate("Treatment")}>
+    <Text style={{ color: 'lime', fontSize: 18 }}>• Treatment</Text>
   </Pressable>
 </View>
          
@@ -519,6 +523,117 @@ useEffect(() => {
   );
 }
 
+function Treatment_Screen() {
+  const [listOfTreatments, setListOfTreatments] = useState([]);
+  const [név, setNév] = useState('');
+
+  useEffect(() => {
+    async function Fetching_Treatments() {
+      try {
+        let all = await AsyncStorage.getItem("treatments");
+        let current = all ? JSON.parse(all) : [];
+        setListOfTreatments(current);
+      } catch (error) {
+        console.log("error fetching treatments", error);
+      }
+    }
+    Fetching_Treatments();
+  }, []);
+
+  async function Add_Treatment() {
+    if (!név.trim()) return;
+    const newTreatment = { id: Date.now(), név };
+    const updated = [...listOfTreatments, newTreatment];
+    setListOfTreatments(updated);
+    setNév('');
+    await AsyncStorage.setItem("treatments", JSON.stringify(updated));
+  }
+
+  async function Delete_Treatment(index) {
+    const copy = [...listOfTreatments];
+    copy.splice(index, 1);
+    setListOfTreatments(copy);
+    await AsyncStorage.setItem("treatments", JSON.stringify(copy));
+  }
+
+  return (
+    <ImageBackground 
+    
+      source={{uri:"https://cdn.pixabay.com/photo/2017/09/24/10/37/blood-group-2781421_1280.jpg"}}
+      resizeMode='cover'
+    style={{ padding: 20 }}>
+      <FlatList
+        data={listOfTreatments}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item, index }) => (
+          <View
+
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginVertical: 5,
+              padding: 10,
+              borderWidth: 2,
+              borderColor: 'lime',
+              borderRadius: 10,
+           
+            }}
+
+           
+            
+             
+          >
+            <Text style={{ fontSize: 18, color:'white' }}>{item.név}</Text>
+            <Pressable onPress={() => Delete_Treatment(index)}>
+              <Text
+                style={{
+                  color: 'white',
+                  borderColor: 'red',
+                  borderWidth: 1,
+                  padding: 5,
+                  borderRadius: 6,
+                }}
+              >
+                Delete Treatment
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      />
+
+      <TextInput
+        placeholder='Treatment name'
+        value={név}
+        onChangeText={setNév}
+        style={{
+          borderWidth: 1,
+          borderColor: 'gray',
+          borderRadius: 8,
+          padding: 10,
+          marginTop: 10,
+          color:'white'
+        }}
+      />
+
+      <Pressable onPress={Add_Treatment}>
+        <Text
+          style={{
+            color: 'white',
+            borderColor: 'lime',
+            borderWidth: 1,
+            padding: 8,
+            borderRadius: 6,
+            marginTop: 10,
+            textAlign: 'center',
+          }}
+        >
+          Add Treatment
+        </Text>
+      </Pressable>
+    </ImageBackground>
+  );
+}
 
 
 export default function App() {
@@ -529,6 +644,7 @@ export default function App() {
         <Stack.Screen name="Admin"  component={AdminScreen} />
         <Stack.Screen name="History" component={Histroy_Screen} />
         <Stack.Screen name="Cancel" component={Cancel_Appointment} />
+        <Stack.Screen name="Treatment" component={Treatment_Screen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
