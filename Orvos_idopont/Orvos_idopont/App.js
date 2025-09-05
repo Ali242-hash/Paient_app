@@ -17,6 +17,7 @@ import { ImageBackground } from 'react-native';
 
 
 
+
 const Stack = createNativeStackNavigator();
 
 function Generate_TimeSlot() {
@@ -128,6 +129,8 @@ async function Confirm_Registraiton(index, user) {
       setRefresh(!refresh);
     }
   }
+
+
 
   return (
     <ImageBackground
@@ -250,7 +253,7 @@ async function Confirm_Registraiton(index, user) {
                   <Pressable onPress={() => AppIncrease(item)}>
                     <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12,color:'white' }}>+</Text>
                   </Pressable>
-                  <Text style={{ marginHorizontal: 10 }}>{item.number}</Text>
+                  <Text style={{ marginHorizontal: 40, color:'white',fontSize:20,textAlign:'center',marginRight:16,marginTop:10 }}>{item.number}</Text>
                   <Pressable onPress={() => AppDecrease(item)}>
                     <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12, color:'white' }}>-</Text>
                   </Pressable>
@@ -288,7 +291,7 @@ async function cancelAppointment(index) {
 }
 
 return (
-  <imageBackground 
+  <ImageBackground 
       source={{uri:'https://cdn.pixabay.com/photo/2023/03/11/14/52/background-7844628_1280.png'}}
     resizeMode='cover'
     style={{ flex: 1, marginTop: 30 }}
@@ -333,10 +336,8 @@ return (
         <Text>No appointments to cancel</Text>
       </View>
     )}
-  </imageBackground>
+  </ImageBackground>
 );
-
-
 
 
 }
@@ -526,6 +527,7 @@ useEffect(() => {
 function Treatment_Screen() {
   const [listOfTreatments, setListOfTreatments] = useState([]);
   const [név, setNév] = useState('');
+  const [editingId, seteditingId] = useState(null);
 
   useEffect(() => {
     async function Fetching_Treatments() {
@@ -542,6 +544,18 @@ function Treatment_Screen() {
 
   async function Add_Treatment() {
     if (!név.trim()) return;
+
+    if (editingId) {
+      const updated = listOfTreatments.map(t =>
+        t.id === editingId ? { ...t, név } : t
+      );
+      setListOfTreatments(updated);
+      await AsyncStorage.setItem("treatments", JSON.stringify(updated));
+      seteditingId(null);
+      setNév('');
+      return;
+    }
+
     const newTreatment = { id: Date.now(), név };
     const updated = [...listOfTreatments, newTreatment];
     setListOfTreatments(updated);
@@ -557,17 +571,16 @@ function Treatment_Screen() {
   }
 
   return (
-    <ImageBackground 
-    
-      source={{uri:"https://cdn.pixabay.com/photo/2017/09/24/10/37/blood-group-2781421_1280.jpg"}}
-      resizeMode='cover'
-    style={{ padding: 20 }}>
+    <ImageBackground
+      source={{ uri: "https://cdn.pixabay.com/photo/2017/09/24/10/37/blood-group-2781421_1280.jpg" }}
+      resizeMode="cover"
+      style={{ padding: 20 }}
+    >
       <FlatList
         data={listOfTreatments}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => (
           <View
-
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -577,43 +590,37 @@ function Treatment_Screen() {
               borderWidth: 2,
               borderColor: 'lime',
               borderRadius: 10,
-           
             }}
-
-           
-            
-             
           >
-            <Text style={{ fontSize: 18, color:'white' }}>{item.név}</Text>
-            <Pressable onPress={() => Delete_Treatment(index)}>
-              <Text
-                style={{
-                  color: 'white',
-                  borderColor: 'red',
-                  borderWidth: 1,
-                  padding: 5,
-                  borderRadius: 6,
-                }}
-              >
-                Delete Treatment
-              </Text>
-            </Pressable>
+            <Text style={{ fontSize: 18, color: 'white' }}>{item.név}</Text>
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Pressable onPress={() => {seteditingId(item.id);setNév(item.név); }}>
+                <Text style={{   color: 'white',borderColor: 'white', borderWidth: 1,  padding: 5, borderRadius: 6, }}>Edit</Text>
+              </Pressable>
+
+              <Pressable onPress={() => Delete_Treatment(index)}>
+                <Text style={{color: 'white',borderColor: 'white', borderWidth: 1, padding: 5,borderRadius: 6, }}> Delete</Text>
+              </Pressable>
+            </View>
           </View>
         )}
       />
 
       <TextInput
-        placeholder='Treatment name'
+        placeholder="Treatment name"
         value={név}
         onChangeText={setNév}
         style={{
           borderWidth: 1,
-          borderColor: 'gray',
+          borderColor: 'white',
           borderRadius: 8,
           padding: 10,
           marginTop: 10,
-          color:'white'
+          textAlign:'center',
+          color: 'white',
         }}
+        placeholderTextColor="lightgray"
       />
 
       <Pressable onPress={Add_Treatment}>
@@ -628,7 +635,7 @@ function Treatment_Screen() {
             textAlign: 'center',
           }}
         >
-          Add Treatment
+          {editingId ? 'Save change' : 'Add Treatment'}
         </Text>
       </Pressable>
     </ImageBackground>

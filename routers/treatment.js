@@ -111,40 +111,49 @@ router.delete("/me/:id",Auth(),async(req,res)=>{
 
 })
 
-router.put("/me/:id",Auth(),async(req,res)=>{
+router.put("/me/:id",async(req,res)=>{
 
   try{
-
     const{id}=req.params
-    const { név } = req.body
+  const{név}= req.body
 
-    const treatment = await Treatment.findOne({where:{id}})
+  if(!név){
 
-    if(!treatment){
+    return res.status(400).json({message:"name need it fr treatments"}).end()
+  }
 
-      return res.status(404).json({message:"no treatment found"}).end()
-    }
+  if(név.length>100){
 
-    if(!név){
+    return res.status(400).json({message:"name need to be at least 100 chracters"}).end()
+  }
 
-         return res.status(400).json({ message: "Name is required" }).end()
-    }
+  const treatment = await Treatment.findOne({where:{id}})
+  if(!treatment){
 
-    if (név.length > 100) {
-      return res.status(400).json({ message: "Name cannot exceed 100 characters" }).end();
-    }
-    
-    treatment.név =  név
-   await treatment.save()
+    return res.status(404).json({message:"no treatment was found"}).end()
+  }
 
-    return res.status(200).json({message:"Treatment saved",treatment})
+  if(treatment.doctorId !== req.user.id){
+
+    return res.status(403).json({message:"you can only update your own treatments"}).end()
+  }
+
+  const duplicate = await Treatment.findOne({where:{doctorId:req.user.id,név}})
+  if(duplicate){
+
+    return res.status(409).json({message:"This treatment  exsits in our database"}).end()
+  }
+
+  treatment.név = név
+  await treatment.save()
+
+  return res.status(200).json({message:"Treatment updated",treatment})
 
   }
 
     catch (error) {
     return res.status(500).json({ message: "Error fetching treatments", error: error.message })
   }
-
 
 })
 
