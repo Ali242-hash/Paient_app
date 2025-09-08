@@ -13,6 +13,8 @@ const RouterAppointment = require('./routers/appointment');
 const DoctorProRoute = require('./routers/Doctorprofile');
 const Shiftrouter = require('./routers/Shift');
 const { router: authRouter } = require('./routers/auth');
+const{router:treatRouter}=require("./routers/treatment")
+const adminrouter = require("./routers/admin")
 
 const {
   User,
@@ -37,6 +39,8 @@ server.use('/appointments', RouterAppointment);
 server.use('/doctorProfiles', DoctorProRoute);
 server.use('/auth', authRouter);
 server.use('/shifts', Shiftrouter);
+server.use('/treatments', treatRouter)
+server.use("/admin",adminrouter)
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
