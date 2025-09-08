@@ -12,8 +12,8 @@ const userRouters = require('./routers/user');
 const RouterAppointment = require('./routers/appointment');
 const DoctorProRoute = require('./routers/Doctorprofile');
 const Shiftrouter = require('./routers/Shift');
-const { router: authRouter } = require('./routers/auth');
-const{router:treatRouter}=require("./routers/treatment")
+const authRouter = require('./routers/auth')
+const treatRouter = require("./routers/treatment")
 const adminrouter = require("./routers/admin")
 
 const {

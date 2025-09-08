@@ -3,7 +3,7 @@ const router = express.Router()
 const jwt = require('jsonwebtoken')
 const { User } = require('../dbHandler')
 const bcrypt = require('bcrypt')
-const { server } = require('typescript')
+
 
 
 const secretkey = process.env.secretkey || "madaretosagbegad666"
@@ -109,4 +109,6 @@ router.put('/put', Auth(), async (req, res) => {
   res.json({ message: 'This should not be reached with invalid token' })
 })
 
-module.exports = { Auth, router }
+module.exports = router
+module.exports.Auth = Auth
+
