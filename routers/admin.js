@@ -31,7 +31,7 @@ router.get("/appointments",Auth("admin"),async(req,res)=>{
 
 })
 
-router.post("/users",async(req,res)=>{
+router.post("/users",Auth(),async(req,res)=>{
 
   try{
       const{name,email,password,role}=req.body
@@ -79,7 +79,7 @@ router.put("/users/:id/active",async(req,res)=>{
   try{
     const{id}=req.params
 
-    const user = await User.findOne({where:{id}})
+    const user =  await User.findByPk(id)
 
     if(!user){
 
@@ -100,12 +100,12 @@ router.put("/users/:id/active",async(req,res)=>{
 
 })
 
-router.put("/users/:id//inactive",async(req,res)=>{
+router.put("/users/:id/inactive",async(req,res)=>{
   try{
 
     const{id}=req.params
 
-    const user = await User.findOne({where:{id}})
+    const user =  await User.findByPk(id)
 
     if(!user){
 
@@ -113,7 +113,7 @@ router.put("/users/:id//inactive",async(req,res)=>{
     }
 
     user.isActive = false
-    user.save()
+   await user.save()
 
     return res.status(200).json({message:"user deactivated successfully"}).end()
 
