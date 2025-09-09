@@ -151,16 +151,20 @@ function DoctorScreen({ navigation }) {
           <Text style={{ color: 'lime', fontSize: 18 }}>• Appointment History</Text>
         </Pressable>
 
-       
+         <Pressable onPress={() => navigation.navigate("Treatment")}>
+    <Text style={{ color: 'lime', fontSize: 18 }}>• Treatment Appointment</Text>
+  </Pressable>
            
         <Pressable onPress={() => navigation.navigate("Cancel")}>
           <Text style={{ color: 'lime', fontSize: 18 }}>• Cancel Appointment</Text>
         </Pressable>
 
         <Pressable onPress={() => navigation.navigate("Admin")}>
-          <Text style={{ color: 'lime', fontSize: 18 }}>• Admin</Text>
+          <Text style={{ color: 'lime', fontSize: 18 }}>• Admin Page</Text>
         </Pressable>
     
+    
+
     
 
    
@@ -665,7 +669,7 @@ function Treatment_Screen() {
 
   return (
     <ImageBackground
-      source={{ uri: "https://cdn.pixabay.com/photo/2017/09/24/10/37/blood-group-2781421_1280.jpg" }}
+      source={{ uri: "https://cdn.pixabay.com/photo/2015/10/15/21/23/texture-990088_1280.jpg" }}
       resizeMode="cover"
       style={{ padding: 20 }}
     >
