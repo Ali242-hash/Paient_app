@@ -14,10 +14,6 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { ImageBackground } from 'react-native';
 
 
-
-
-
-
 const Stack = createNativeStackNavigator();
 
 function Generate_TimeSlot() {
@@ -36,6 +32,18 @@ function DoctorScreen({ navigation }) {
   const [listofDoctors, SetlistofDcotros] = useState([]);
   const [listofAppointments, SetlistofAppointments] = useState([]);
   const [refresh, setRefresh] = useState(false);
+
+  const Generate_TimeSlot = () => {
+    const slots = [];
+    for (let hour = 9; hour < 17; hour++) {
+      for (let min = 0; min < 60; min += 15) {
+        const h = hour.toString().padStart(2, '0');
+        const m = min.toString().padStart(2, '0');
+        slots.push(`${h}:${m}`);
+      }
+    }
+    return slots;
+  };
 
   async function Load() {
     try {
@@ -65,106 +73,98 @@ function DoctorScreen({ navigation }) {
     }
   }
 
-async function Confirm_Registraiton(index, user) {
-  const appointments = listofAppointments[index];
+  async function Confirm_Registraiton(index, doctor) {
+    const appointment = listofAppointments[index];
 
-  if (!appointments.name || !appointments.email || !appointments.username ) {
-    alert("Please fill in your credentials");
-    return;
-  }
-
-  try {
-    let all = await AsyncStorage.getItem("appointments");
-    let current = all ? JSON.parse(all) : [];
-
-    const isDuplicate = current.some(
-      (a) =>
-        a.name === appointments.name &&
-        a.email === appointments.email &&
-        a.username === appointments.username 
-    
-    );
-
-    if (isDuplicate) {
-      alert("This patient is already in the system");
+    if (!appointment.name || !appointment.username || !appointment.email || !appointment.date || !appointment.timeslot) {
+      alert("Please fill all fields");
       return;
     }
 
-    current.push({
-      ...appointments,
-      name: appointments.name,
-      email: appointments.email,
-      username: appointments.username,
-      doctor: user.Docname,
-      Status_Condition: "booked",
-      date:appointments.date.toISOString()
-    });
+    try {
+      let all = await AsyncStorage.getItem("appointments");
+      let current = all ? JSON.parse(all) : [];
 
-    await AsyncStorage.setItem("appointments", JSON.stringify(current));
-    alert("Registration confirmed");
-  } catch (error) {
-    console.log("Your registration was not successful", error);
+      const isDuplicate = current.some(
+        (a) =>
+          a.name === appointment.name &&
+          a.username === appointment.username &&
+          a.email === appointment.email
+      );
+
+      if (isDuplicate) {
+        alert("This patient is already in the system");
+        return;
+      }
+
+      current.push({
+        ...appointment,
+        doctor: doctor.Docname,
+        Status_Condition: "booked",
+        date: appointment.date.toISOString()
+      });
+
+      await AsyncStorage.setItem("appointments", JSON.stringify(current));
+      alert("Registration confirmed");
+
+  
+      const updatedAppointments = [...listofAppointments];
+      updatedAppointments[index] = {
+        name: "",
+        username: "",
+        email: "",
+        date: new Date(),
+        timeslot: doctor.timesslot.length > 0 ? doctor.timesslot[0].id : ""
+      };
+      SetlistofAppointments(updatedAppointments);
+    } catch (error) {
+      console.log("Registration failed:", error);
+    }
   }
-}
+
 
 
   useEffect(() => {
-    if (listofDoctors.length === 0) {
-      Load();
-    }
+    if (listofDoctors.length === 0) Load();
   }, [listofDoctors]);
-
-  function AppIncrease(item) {
-    const index = listofDoctors.indexOf(item);
-    if (listofDoctors[index].number < 10) {
-      listofDoctors[index].number++;
-      setRefresh(!refresh);
-    }
-  }
-
-    function AppDecrease(item) {
-    const index = listofDoctors.indexOf(item);
-    if (listofDoctors[index].number - 1 > 0) {
-      listofDoctors[index].number--;
-      setRefresh(!refresh);
-    }
-  }
-
-
 
   return (
     <ImageBackground
-        source={{ uri: 'https://cdn.pixabay.com/photo/2018/11/02/14/52/nurse-3790361_1280.jpg' }}
-        style={styles.container}
-        resizeMode="cover"
-    
+      source={{ uri: 'https://cdn.pixabay.com/photo/2016/10/22/01/54/wood-1759566_1280.jpg' }}
+      style={styles.container}
+      resizeMode="cover"
     >
-<View style={{
-  flexDirection: 'row',
-  justifyContent: 'space-around',
-  alignItems: 'center',
-  paddingVertical: 15,
-  backgroundColor: '#351c75'
-}}>
-  <Pressable onPress={() => navigation.navigate("Admin")}>
-    <Text style={{ color: 'lime', fontSize: 18 }}>• Admin</Text>
-  </Pressable>
-  
-  <Pressable onPress={() => navigation.navigate("History")}>
-    <Text style={{ color: 'lime', fontSize: 18 }}>• History</Text>
-  </Pressable>
-  
-  <Pressable onPress={() => navigation.navigate("Cancel")}>
-    <Text style={{ color: 'lime', fontSize: 18 }}>• Cancel</Text>
-  </Pressable>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        paddingVertical: 15,
+        backgroundColor: '#351c75',
+     
+      }}>
 
-    <Pressable onPress={() => navigation.navigate("Treatment")}>
-    <Text style={{ color: 'lime', fontSize: 18 }}>• Treatment</Text>
-  </Pressable>
-</View>
-         
+      <Pressable onPress={() => navigation.navigate("Patient")}>
+          <Text style={{ color: 'lime', fontSize: 18 }}>• Patient Registration</Text>
+      </Pressable>
 
+       <Pressable onPress={() => navigation.navigate("History")}>
+          <Text style={{ color: 'lime', fontSize: 18 }}>• Appointment History</Text>
+        </Pressable>
 
+       
+           
+        <Pressable onPress={() => navigation.navigate("Cancel")}>
+          <Text style={{ color: 'lime', fontSize: 18 }}>• Cancel Appointment</Text>
+        </Pressable>
+
+        <Pressable onPress={() => navigation.navigate("Admin")}>
+          <Text style={{ color: 'lime', fontSize: 18 }}>• Admin</Text>
+        </Pressable>
+    
+    
+
+   
+      </View>
 
       <FlatList
         data={listofDoctors}
@@ -176,89 +176,22 @@ async function Confirm_Registraiton(index, user) {
               <View style={{ flexDirection: 'row', alignItems: "center" }}>
                 <Image
                   source={{ uri: item.profilKépUrl }}
-                  style={{ width: 100, height: 160, borderRadius: 12, borderColor: 'lime', borderWidth: 2,marginHorizontal:10 }}
+                  style={{ width: 100, height: 160, borderRadius: 12, borderColor: 'lime', borderWidth: 2, marginHorizontal: 10 }}
                 />
                 <View style={{ marginLeft: 10, flexShrink: 1 }}>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>Doctor Name:</Text>
-                    <Text style={{ fontWeight: "bold",color:'white' }}>{item.Docname}</Text>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>Description:</Text>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.description}</Text>
-                  <Text style={{ fontWeight: "bold", fontVariant: ['small-caps'],color:'white' }}>Speciality:</Text>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.specialty}</Text>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>Treatment:</Text>
-                  <Text style={{ fontWeight: "bold",color:'white' }}>{item.treatments}</Text>
+                 
+                  <Text style={{ fontWeight: "bold", color: 'white',lineHeight:30, fontSize:18 }}>Orvos Nevek: {item.Docname}</Text>
+                  
+                  <Text style={{ fontWeight: "bold", color: 'white',lineHeight:30, fontSize:18 }}>Leírások: {item.description}</Text>
+             
+                  <Text style={{ fontWeight: "bold", color: 'white',lineHeight:30, fontSize:18 }}>Szakirányok: {item.specialty}</Text>
+            
+                  <Text style={{ fontWeight: "bold", color: 'white',lineHeight:30, fontSize:18 }}>Kezelések: {item.treatments}</Text>
                 </View>
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-                <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, marginTop: 40, fontWeight: 'bold', paddingVertical: 10, color:'white' }}>Patient Registration</Text>
-                  <TextInput
-                    placeholder='Name'
-                    style={styles.input}
-                    value={appointment.name}
-                    onChangeText={(text) => {
-                      const updated = [...listofAppointments];
-                      updated[index].name = text;
-                      SetlistofAppointments(updated);
-                    }}
-                  />
-                  <TextInput
-                    placeholder='Username'
-                    style={styles.input}
-                    value={appointment.username}
-                    onChangeText={(text) => {
-                      const updated = [...listofAppointments];
-                      updated[index].username = text;
-                      SetlistofAppointments(updated);
-                    }}
-                  />
-                  <TextInput
-                    placeholder='Email'
-                    value={appointment.email}
-                    style={styles.input}
-                    onChangeText={(text) => {
-                      const updated = [...listofAppointments];
-                      updated[index].email = text;
-                      SetlistofAppointments(updated);
-                    }}
-                  />
-                  <TextInput
-                    value={appointment.date.toISOString().slice(0, 10)}
-                    onChangeText={(text) => {
-                      const updated = [...listofAppointments];
-                      updated[index].date = new Date(text);
-                      SetlistofAppointments(updated);
-                    }}
-                    style={styles.input}
-                  />
-                </View>
-                <View style={{ alignItems: 'flex-end', flex: 1 }}>
-                  <Text style={{ textAlign: 'center', fontWeight: 'bold', marginTop: 20, paddingVertical: 10, color:'white' }}>Consultation Time</Text>
-                  <Picker
-                    selectedValue={appointment.timeslot}
-                    onValueChange={(value) => {
-                      const updated = [...listofAppointments];
-                      updated[index].timeslot = value;
-                      SetlistofAppointments(updated);
-                    }}
-                  >
-                    {Generate_TimeSlot().map((slot, i) => (
-                      <Picker.Item key={i} label={slot} value={slot} />
-                    ))}
-                  </Picker>
-                  <Pressable onPress={() => Confirm_Registraiton(index, item)}>
-                    <Text style={styles.button}>Confirm Registration</Text>
-                  </Pressable>
-                  <Text style={{ marginTop: 20, textAlign: 'center',color:'white' }}>Number of patient</Text>
-                  <Pressable onPress={() => AppIncrease(item)}>
-                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12,color:'white' }}>+</Text>
-                  </Pressable>
-                  <Text style={{ marginHorizontal: 40, color:'white',fontSize:20,textAlign:'center',marginRight:16,marginTop:10 }}>{item.number}</Text>
-                  <Pressable onPress={() => AppDecrease(item)}>
-                    <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, marginTop: 12, color:'white' }}>-</Text>
-                  </Pressable>
-                </View>
-              </View>
+
+       
+
             </View>
           );
         }}
@@ -266,6 +199,149 @@ async function Confirm_Registraiton(index, user) {
     </ImageBackground>
   );
 }
+
+
+function Patient_Registration() {
+  const [appointment, setAppointment] = useState({
+    name: '',
+    username: '',
+    email: '',
+    date: new Date(),
+    timeslot: '',
+    number: 1
+  });
+
+
+
+  const Confirm_Registration = async () => {
+    if (!appointment.name || !appointment.username || !appointment.email || !appointment.date || !appointment.timeslot) {
+      alert('Please fill all fields');
+      return
+    }
+
+    try {
+      let all = await AsyncStorage.getItem('appointments');
+      let current = all ? JSON.parse(all) : [];
+
+      const isDuplicate = current.some(
+        (a) => a.name === appointment.name && a.username === appointment.username && a.email === appointment.email
+      );
+      if (isDuplicate) {
+        alert('This patient is already registered');
+        return;
+      }
+
+      current.push({
+        ...appointment,
+        Status_Condition: 'booked',
+        doctor: 'Not selected',
+        date: appointment.date.toISOString()
+      });
+
+      await AsyncStorage.setItem('appointments', JSON.stringify(current));
+      alert('Registration confirmed');
+
+      setAppointment({
+        name: '',
+        username: '',
+        email: '',
+        date: new Date(),
+        timeslot: '',
+        number: 1
+      });
+    } catch (error) {
+      console.log('Registration failed:', error);
+    }
+  };
+
+  const AppIncrease = () => {
+    setAppointment({ ...appointment, number: appointment.number + 1 });
+  };
+
+  const AppDecrease = () => {
+    if (appointment.number > 1) {
+      setAppointment({ ...appointment, number: appointment.number - 1 });
+    }
+  };
+
+return (
+  <View style={{ flex: 1, alignItems: 'center', paddingTop: 30 }}>
+
+
+   
+    <View style={{
+      width: 241,
+      backgroundColor: '#ccc', 
+      borderColor: 'gray',     
+      borderWidth: 2,
+      borderRadius: 10,
+      padding: 25,
+      marginTop: 20
+    }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+        Patient Registration
+      </Text>
+
+     
+      <TextInput
+        placeholder="Name"
+        style={styles.input}
+        value={appointment.name}
+        onChangeText={(text) => setAppointment({ ...appointment, name: text })}
+      />
+      <TextInput
+        placeholder="Username"
+        style={styles.input}
+        value={appointment.username}
+        onChangeText={(text) => setAppointment({ ...appointment, username: text })}
+      />
+      <TextInput
+        placeholder="Email"
+        style={styles.input}
+        value={appointment.email}
+        onChangeText={(text) => setAppointment({ ...appointment, email: text })}
+      />
+      <TextInput
+        value={appointment.date.toISOString().slice(0, 10)}
+        style={styles.input}
+        onChangeText={(text) => setAppointment({ ...appointment, date: new Date(text) })}
+      />
+
+      <Text style={{ fontWeight: 'bold', marginTop: 10, textAlign:'center',padding:10 }}>Consultation Time</Text>
+      <Picker
+        selectedValue={appointment.timeslot}
+        onValueChange={(value) => setAppointment({ ...appointment, timeslot: value })}
+        style={{ width: 150, backgroundColor: '#351c75', color: 'white', marginBottom: 10,alignItems:'center' }}
+      >
+        {Generate_TimeSlot().map((slot, i) => (
+          <Picker.Item key={i} label={slot} value={slot} />
+        ))}
+      </Picker>
+
+      <Pressable onPress={Confirm_Registration}>
+        <Text style={styles.button}>Confirm Registration</Text>
+      </Pressable>
+
+   
+      <Text style={{ marginTop: 20, textAlign: 'center' }}>Number of Patients</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 5 }}>
+        <Pressable onPress={AppIncrease}>
+          <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, color: 'white' }}>+</Text>
+        </Pressable>
+        <Text style={{ marginHorizontal: 20, fontSize: 20, color: 'white' }}>{appointment.number}</Text>
+        <Pressable onPress={AppDecrease}>
+          <Text style={{ fontSize: 25, borderColor: 'gray', borderWidth: 4, borderRadius: 15, padding: 10, color: 'white' }}>-</Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+);
+
+
+
+}
+
+
 
 function Cancel_Appointment({ navigation }) {
   const [historyappointments, setHistoryAppointments] = useState([]);
@@ -373,12 +449,25 @@ function AdminScreen() {
   }
 
 if (!loggedin) {
-  return (
-    <ImageBackground 
-      source={{ uri: 'https://cdn.pixabay.com/photo/2024/12/16/17/10/blood-9271226_1280.png' }}
-      resizeMode='cover'
-      style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}
-    > 
+return (
+  <View style={{ flex: 1, alignItems: 'center', paddingTop: 20,backgroundColor:'#ADD8E6' }}>
+
+ 
+
+
+    <View style={{
+      width: 600,
+      backgroundColor: '#ccc', 
+      borderColor: 'gray',
+      borderWidth: 2,
+      borderRadius: 20,
+      padding: 20,
+      marginTop: 20
+    }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+        Admin Login
+      </Text>
+
       <TextInput
         placeholder='Admin Email'
         value={email}
@@ -392,14 +481,18 @@ if (!loggedin) {
         secureTextEntry
         style={styles.input}
       />
+
       <Pressable onPress={HandleLogin}>
         <Text style={styles.button}>Login</Text>
       </Pressable>
-      <Text style={{ textAlign: "center", borderWidth: 4, borderColor: 'lime', marginTop: 25, padding: 10 ,color:'lime'}}>
+
+      <Text style={{ textAlign: "center", borderWidth: 4, borderColor: 'lime', marginTop: 25, padding: 10, color: 'black' }}>
         FYI Admin email is admin@admin.com & Password admin123qwe
       </Text>
-    </ImageBackground>
-  );
+    </View>
+  </View>
+);
+
 }
 
 return (
@@ -652,6 +745,7 @@ export default function App() {
         <Stack.Screen name="History" component={Histroy_Screen} />
         <Stack.Screen name="Cancel" component={Cancel_Appointment} />
         <Stack.Screen name="Treatment" component={Treatment_Screen}/>
+         <Stack.Screen name="Patient" component={Patient_Registration} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -687,11 +781,12 @@ heading: {
     marginBottom: 12,
     width: 160,
     backgroundColor: '#f4f4f4',
-    textAlign: 'center'
+    textAlign: 'center',
+    alignItems:"center"
   },
   button: {
-    color: 'lime',
-    borderColor: 'lime',
+    color: 'black',
+    borderColor: 'gray',
     borderWidth: 1,
     padding: 8,
     borderRadius: 6,
