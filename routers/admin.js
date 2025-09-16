@@ -73,7 +73,7 @@ router.post("/users",Auth(),async(req,res)=>{
 
 })
 
-router.put("/users/:id/active",async(req,res)=>{
+router.put("/:id/active",async(req,res)=>{
 
   
   try{
@@ -100,7 +100,7 @@ router.put("/users/:id/active",async(req,res)=>{
 
 })
 
-router.put("/users/:id/inactive",async(req,res)=>{
+router.put("/:id/inactive",async(req,res)=>{
   try{
 
     const{id}=req.params
@@ -124,5 +124,7 @@ router.put("/users/:id/inactive",async(req,res)=>{
        return res.status(500).json({message:"error,fetching appointments",error:error.message})
   }
 })
+
+
 
 module.exports = router
