@@ -13,9 +13,16 @@ import axios, { all } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+//import env from "react-dotenv";
+import dotenv from 'dotenv'
 
 import { Picker } from "@react-native-picker/picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+
+
+
+const BaseURL = process.env.BaseURL + ":" + process.env.PORT
+console.log(BaseURL); 
 
 import { ImageBackground } from "react-native";
 
@@ -42,13 +49,15 @@ function DoctorScreen({ navigation }) {
   async function Load() {
     try {
       const { data: doctors } = await axios.get(
-        "http://192.168.0.242:3000/doctorprofiles"
+       // `http://${BaseURL}/doctorprofiles`
+       "http://172.20.10.5:3000/doctorprofiles"
       );
 
       const doctorswithslots = await Promise.all(
         doctors.map(async (doc) => {
           const { data: slotid } = await axios.get(
-            `http://192.168.0.242:3000/Shifts/${doc.id}/timeslots`
+          //  `http://${BaseURL}/Shifts/${doc.id}/timeslots`
+          `http://172.20.10.5:3000/Shifts/${doc.id}/timeslots`
           );
           return {
             ...doc,
@@ -447,7 +456,7 @@ function Patient_Registration() {
   );
 }
 
-function Cancel_Appointment({ navigation }) {
+function Cancel_Appointment() {
   const [historyappointments, setHistoryAppointments] = useState([]);
 
   useEffect(() => {
@@ -460,69 +469,48 @@ function Cancel_Appointment({ navigation }) {
 
   async function cancelAppointment(index) {
     try {
+    
       const updated = [...historyappointments];
-      updated[index].Status_Condition = "cancelled";
+      updated.splice(index, 1); 
       setHistoryAppointments(updated);
       await AsyncStorage.setItem("appointments", JSON.stringify(updated));
-      alert("Appointment cancelled");
+      alert("Appointment removed");
     } catch (error) {
-      console.log("Error cancelling appointment", error);
+      console.log("Error removing appointment", error);
     }
   }
 
   return (
-    <ImageBackground
-      source={{
-        uri: "https://cdn.pixabay.com/photo/2023/03/11/14/52/background-7844628_1280.png",
-      }}
-      resizeMode="cover"
-      style={{ flex: 1, marginTop: 30 }}
-    >
+    <View style={styles.cancelContainer}>
       {historyappointments.length > 0 ? (
-        <View style={{ flex: 1, paddingTop: 10 }}>
-          {historyappointments.map((item, index) => (
-            <View
-              key={index}
-              style={{
-                marginBottom: 10,
-                alignItems: "flex-start",
-                marginHorizontal: 20,
-                borderColor: "lime",
-                borderWidth: 2,
-                padding: 20,
-                borderRadius: 15,
-              }}
-            >
-              <Text style={{ color: "darkred" }}>Doctor: {item.doctor}</Text>
-              <Text>Patient: {item.name}</Text>
-              <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
-              <Text>Status: {item.Status_Condition || "cancelled"}</Text>
-              <Pressable onPress={() => cancelAppointment(index)}>
-                <Text
-                  style={{
-                    borderColor: "red",
-                    color: "red",
-                    padding: 10,
-                    borderWidth: 2,
-                    marginTop: 5,
-                  }}
-                >
-                  Cancel
-                </Text>
+        <FlatList
+          data={historyappointments}
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <View style={styles.appointmentCard}>
+              <Text style={{alignItems:'center'}}>Patient: {item.name}</Text>
+              <Text style={{alignItems:'center'}}>
+                Date: {new Date(item.date).toLocaleDateString()}
+              </Text>
+              <Text style={styles.timeText}>Time: {item.timeslot}</Text>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => cancelAppointment(index)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
             </View>
-          ))}
-        </View>
+          )}
+        />
       ) : (
-        <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
-          <Text>No appointments to cancel</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No appointments to cancel</Text>
         </View>
       )}
-    </ImageBackground>
+    </View>
   );
 }
+
 
 function AdminScreen() {
   const [listofAppointments, SetlistofAppointments] = useState([]);
@@ -631,8 +619,8 @@ function AdminScreen() {
       {listofAppointments.map((app, index) => (
         <View key={index} style={{ marginTop: 10 }}>
           <Text style={{ color: "white" }}>Doctor: {app.doctor}</Text>
-          <Text style={{ color: "white" }}>Patient: {app.name}</Text>
-          <Text style={{ color: "white" }}>Email: {app.email}</Text>
+          <Text style={{ color: "white",fontSize:18 }}>Patient: {app.name}</Text>
+          <Text style={{ color: "white",fontSize:18 }}>Email: {app.email}</Text>
           <Text style={{ color: "white" }}>
             Date: {new Date(app.date).toLocaleDateString()}
           </Text>
@@ -725,7 +713,7 @@ function Histroy_Screen() {
       {historyappointments.length > 0 ? (
         historyappointments.map((item, index) => (
           <View key={index} style={{ marginBottom: 10 }}>
-            <Text>Doctor: {item.doctor}</Text>
+          
             <Text>Name: {item.name}</Text>
             <Text>Email: {item.email}</Text>
             <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
@@ -911,6 +899,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#351c75",
   },
   navText: { color: "lime", fontSize: 16 },
+  cancelContainer:{
+
+    alignItems:'center',
+    borderColor:'lime',
+    backgroundColor:"#392989ff"
+  },
   card: {
     padding: 8,
     borderBottomWidth: 1,
@@ -944,8 +938,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 14,
     alignItems:'center',
-    width:300,
-    marginTop:50
+    width: 300,
+    marginTop: 50
   },
   picker: {
     width: 140,
@@ -966,4 +960,51 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignSelf: "flex-start", 
   },
+
+  cancelCard: {
+    width: 350, 
+    marginBottom: 16,
+    alignItems: "center",
+    marginHorizontal: "auto",
+    borderColor: "lime",
+    borderWidth: 2,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  cancelDoctorText: {
+    color: "#FFD700", 
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  cancelText: {
+    color: "white",
+    fontSize: 18,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  cancelButton: {
+    backgroundColor: "red",
+    color: "white",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 15,
+    marginTop: 15,
+    textAlign: "center",
+    alignSelf: "center",
+    fontWeight: "bold",
+    elevation: 3,
+  },
+ 
 });
+
+
+
