@@ -14,15 +14,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 //import env from "react-dotenv";
-import dotenv from 'dotenv'
+import dotenv from "dotenv";
 
 import { Picker } from "@react-native-picker/picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
-
-
-const BaseURL = process.env.BaseURL + ":" + process.env.PORT
-console.log(BaseURL); 
+const BaseURL = process.env.BaseURL + ":" + process.env.PORT;
+console.log(BaseURL);
 
 import { ImageBackground } from "react-native";
 
@@ -49,15 +47,15 @@ function DoctorScreen({ navigation }) {
   async function Load() {
     try {
       const { data: doctors } = await axios.get(
-       // `http://${BaseURL}/doctorprofiles`
-       "http://172.20.10.5:3000/doctorprofiles"
+        // `http://${BaseURL}/doctorprofiles`
+        "http://172.20.10.5:3000/doctorprofiles"
       );
 
       const doctorswithslots = await Promise.all(
         doctors.map(async (doc) => {
           const { data: slotid } = await axios.get(
-          //  `http://${BaseURL}/Shifts/${doc.id}/timeslots`
-          `http://172.20.10.5:3000/Shifts/${doc.id}/timeslots`
+            //  `http://${BaseURL}/Shifts/${doc.id}/timeslots`
+            `http://172.20.10.5:3000/Shifts/${doc.id}/timeslots`
           );
           return {
             ...doc,
@@ -361,7 +359,7 @@ function Patient_Registration() {
   };
 
   return (
-    <View style={{ flex: 1, alignItems: "center", paddingTop: 30,  }}>
+    <View style={{ flex: 1, alignItems: "center", paddingTop: 30 }}>
       <View
         style={{
           width: 600,
@@ -386,7 +384,7 @@ function Patient_Registration() {
 
         <TextInput
           placeholder="Name"
-         style={[styles.input,{flex:1,marginRight:1}]}
+          style={[styles.input, { flex: 1, marginRight: 1 }]}
           value={appointment.name}
           onChangeText={(text) =>
             setAppointment({ ...appointment, name: text })
@@ -394,7 +392,7 @@ function Patient_Registration() {
         />
         <TextInput
           placeholder="Username"
-           style={[styles.input,{flex:1,marginRight:1}]}
+          style={[styles.input, { flex: 1, marginRight: 1 }]}
           value={appointment.username}
           onChangeText={(text) =>
             setAppointment({ ...appointment, username: text })
@@ -402,7 +400,7 @@ function Patient_Registration() {
         />
         <TextInput
           placeholder="Email"
-           style={[styles.input,{flex:1,marginRight:1}]}
+          style={[styles.input, { flex: 1, marginRight: 1 }]}
           value={appointment.email}
           onChangeText={(text) =>
             setAppointment({ ...appointment, email: text })
@@ -469,9 +467,8 @@ function Cancel_Appointment() {
 
   async function cancelAppointment(index) {
     try {
-    
       const updated = [...historyappointments];
-      updated.splice(index, 1); 
+      updated.splice(index, 1);
       setHistoryAppointments(updated);
       await AsyncStorage.setItem("appointments", JSON.stringify(updated));
       alert("Appointment removed");
@@ -488,8 +485,8 @@ function Cancel_Appointment() {
           keyExtractor={(_, index) => index.toString()}
           renderItem={({ item, index }) => (
             <View style={styles.appointmentCard}>
-              <Text style={{alignItems:'center'}}>Patient: {item.name}</Text>
-              <Text style={{alignItems:'center'}}>
+              <Text style={{ alignItems: "center" }}>Patient: {item.name}</Text>
+              <Text style={{ alignItems: "center" }}>
                 Date: {new Date(item.date).toLocaleDateString()}
               </Text>
               <Text style={styles.timeText}>Time: {item.timeslot}</Text>
@@ -510,7 +507,6 @@ function Cancel_Appointment() {
     </View>
   );
 }
-
 
 function AdminScreen() {
   const [listofAppointments, SetlistofAppointments] = useState([]);
@@ -619,8 +615,12 @@ function AdminScreen() {
       {listofAppointments.map((app, index) => (
         <View key={index} style={{ marginTop: 10 }}>
           <Text style={{ color: "white" }}>Doctor: {app.doctor}</Text>
-          <Text style={{ color: "white",fontSize:18 }}>Patient: {app.name}</Text>
-          <Text style={{ color: "white",fontSize:18 }}>Email: {app.email}</Text>
+          <Text style={{ color: "white", fontSize: 18 }}>
+            Patient: {app.name}
+          </Text>
+          <Text style={{ color: "white", fontSize: 18 }}>
+            Email: {app.email}
+          </Text>
           <Text style={{ color: "white" }}>
             Date: {new Date(app.date).toLocaleDateString()}
           </Text>
@@ -713,7 +713,6 @@ function Histroy_Screen() {
       {historyappointments.length > 0 ? (
         historyappointments.map((item, index) => (
           <View key={index} style={{ marginBottom: 10 }}>
-          
             <Text>Name: {item.name}</Text>
             <Text>Email: {item.email}</Text>
             <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
@@ -899,11 +898,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#351c75",
   },
   navText: { color: "lime", fontSize: 16 },
-  cancelContainer:{
-
-    alignItems:'center',
-    borderColor:'lime',
-    backgroundColor:"#392989ff"
+  cancelContainer: {
+    alignItems: "center",
+    borderColor: "lime",
+    backgroundColor: "#392989ff",
   },
   card: {
     padding: 8,
@@ -937,9 +935,9 @@ const styles = StyleSheet.create({
     color: "white",
     borderRadius: 6,
     fontSize: 14,
-    alignItems:'center',
+    alignItems: "center",
     width: 300,
-    marginTop: 50
+    marginTop: 50,
   },
   picker: {
     width: 140,
@@ -958,11 +956,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     borderRadius: 12,
     marginTop: 8,
-    alignSelf: "flex-start", 
+    alignSelf: "flex-start",
   },
 
   cancelCard: {
-    width: 350, 
+    width: 350,
     marginBottom: 16,
     alignItems: "center",
     marginHorizontal: "auto",
@@ -979,7 +977,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   cancelDoctorText: {
-    color: "#FFD700", 
+    color: "#FFD700",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 6,
@@ -1003,8 +1001,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     elevation: 3,
   },
- 
 });
-
-
-

@@ -158,7 +158,7 @@ describe("PUT /appointments/:id/status", () => {
 describe("GET /appointments/doctor/history", () => {
 
   test("should return 403 if user is not a doctor", async () => {
-    const patientToken = generateToken({ id: 1, role: "patient" }); // mock token for patient
+    const patientToken = generateToken({ id: 1, role: "patient" }); 
     const response = await supertest(server)
       .get("/appointments/doctor/history")
       .set("Authorization", `Bearer ${patientToken}`);
